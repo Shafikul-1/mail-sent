@@ -22,11 +22,6 @@ class MailsettingController extends Controller
                 echo $value->mail_username . "<br>";
             }
         }
-
-        // Mail::raw('Hi welcome', function ($mailmessage) {
-        //     $mailmessage->to('saidul.mondol1972@gmail.com')->subject('Testing Mail');
-        // });
-        // echo "success";
     }
 
     /**

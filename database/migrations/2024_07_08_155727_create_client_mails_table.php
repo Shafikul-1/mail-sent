@@ -19,6 +19,7 @@ return new class extends Migration
             $table->text('mail_subject');
             $table->text('mail_body');
             $table->text('mail_files');
+            $table->integer('user_id');
             $table->timestamps();
         });
     }

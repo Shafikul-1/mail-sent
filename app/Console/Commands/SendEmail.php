@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Http\Controllers\testController;
 use Illuminate\Console\Command;
 
 class SendEmail extends Command
@@ -27,9 +28,12 @@ class SendEmail extends Command
      */
     public function handle()
     {
-
-
-
+        $sentMailCall = new testController();
+        $result = $sentMailCall->sentEmail();
+        $this->info($result);
+        return 0;
+    }
+}
 
         // $data = ClientMail::first();
         // $mail = $data->mail;
@@ -70,5 +74,4 @@ class SendEmail extends Command
         //         echo "unsuccessful: " . $th->getMessage();
         //     }
         // }
-    }
-}
+ 

@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('sender_mail');
             $table->string('reciver_mail');
             $table->boolean('mail_status');
+            $table->integer('user_id');
             $table->text('msg');
             $table->timestamps();
         });

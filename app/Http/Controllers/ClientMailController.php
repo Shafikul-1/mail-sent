@@ -69,7 +69,7 @@ class ClientMailController extends Controller
         $all_files = array();
         if ($request->file('mail_files')) {
             foreach ($request->file('mail_files') as $key => $value) {
-                $originalName = $value->getClientOriginalName();
+                $originalName = pathinfo($value->getClientOriginalName(), PATHINFO_FILENAME) . '_' . time() . '.' . $value->getClientOriginalExtension();
                 $path = $value->storeAs('upload', $originalName, 'public');
                 array_push($all_files, $path);
             }
@@ -88,15 +88,6 @@ class ClientMailController extends Controller
             ]);
         }
 
-        // Sender Mail Table Sender Emali Push
-        if (!empty($request->mail_all_from)) {
-            $senderAllMails = explode(' ', $request->mail_all_from);
-            foreach ($senderAllMails as $senderMail) {
-                $storeDB = Sender_mail::create([
-                    'mail' => $senderMail,
-                ]);
-            }
-        }
 
         return back()->with('msg', 'You have successfully upload file.');
     }

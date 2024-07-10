@@ -23,6 +23,7 @@ return new class extends Migration
             $table->string('mail_encryption');
             $table->string('mail_from');
             $table->string('mail_sender_name');
+            $table->integer('user_id');
             $table->timestamps();
         });
     }
