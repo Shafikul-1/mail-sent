@@ -16,6 +16,9 @@ Route::resource('/user', UserController::class);
 
 Route::get('/login', [UserController::class, 'login'])->name('login');
 Route::get('/logout', [UserController::class, 'logout'])->name('logout');
+Route::get('/sendMail', [ClientMailController::class, 'sendMail'])->name('sendMail');
+
+
 Route::post('/authUser', [UserController::class, 'checkUser'])->name('authUser');
 // Route::get('/sent', [testController::class, 'sentEmail'])->name('sent');
 Route::get('/template', function(){

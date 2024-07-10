@@ -67,7 +67,7 @@ class SendEmailJob implements ShouldQueue
                 'sender_mail' => $mailSetting->mail_username,
                 'reciver_mail' => $senderData->mail,
                 'mail_status' => $mailStatus,
-                'user_id' => '',
+                'user_id' => 1,
                 'msg' => ($mailStatus) ? 'Mail sent Succesful' : 'Mail sent failed'
             ]);
 

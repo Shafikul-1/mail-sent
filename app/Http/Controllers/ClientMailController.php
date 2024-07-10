@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
+use Log;
 
 class ClientMailController extends Controller
 {
@@ -92,7 +93,7 @@ class ClientMailController extends Controller
             ]);
         }
 
-        return back()->with('msg', 'You have successfully upload file.');
+        return redirect()->route('mail.show', $userId->id)->with('msg', 'You have successfully upload file.');
     }
 
     /**
@@ -103,7 +104,8 @@ class ClientMailController extends Controller
      */
     public function show($id)
     {
-        //
+        $unsendEmail = ClientMail::where('user_id', $id)->get();
+        return view('mail.unsendEmail', compact('unsendEmail'));
     }
 
     /**
@@ -127,6 +129,13 @@ class ClientMailController extends Controller
     public function update(Request $request, $id)
     {
         //
+    }
+
+    // Send All Mail
+    public function sendMail()
+    {
+        $sendAllMail = Mail_message::where('user_id', Auth::user()->id)->get();
+        return view('mail.sendMail', compact('sendAllMail'));
     }
 
     /**

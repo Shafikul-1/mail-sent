@@ -9,4 +9,5 @@ class Mailsetting extends Model
 {
     use HasFactory;
     protected $guarded =[];
+    protected $hidden = ['mail_password'];
 }
