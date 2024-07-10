@@ -1,7 +1,7 @@
 @extends('header')
 
 @section('othersContent')
-    <form method="POST" action="{{route('mailsetting.store')}}" class="max-w-sm mx-auto " enctype="multipart/form-data">
+    <form method="POST" action="{{route('mailsetting.store')}}" class="max-w-sm mx-auto " >
         @csrf
             <div class="mb-5"> 
                 <label for="mail_transport" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">mail_transport</label>

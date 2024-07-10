@@ -6,6 +6,8 @@ use App\Models\ClientMail;
 use App\Models\Sender_mail;
 use App\Models\Mail_message;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 
 class ClientMailController extends Controller
@@ -58,7 +60,7 @@ class ClientMailController extends Controller
      * @return \Illuminate\Http\Response
      */
     public function store(Request $request)
-    {
+    {       
         $request->validate([
             'mail_all' => 'required',
             'mail_subject' => 'required',
@@ -79,15 +81,16 @@ class ClientMailController extends Controller
         $allMails = explode(' ', $request->mail_all);
 
         // All Other User Emails Push
+        $userId = Auth::user();
         foreach ($allMails as $allMail) {
             $storeDB = ClientMail::create([
                 'mail' => $allMail,
                 'mail_subject' => $request->mail_subject,
                 'mail_body' => $request->mail_body,
                 'mail_files' => $allFileName,
+                'user_id' => $userId->id
             ]);
         }
-
 
         return back()->with('msg', 'You have successfully upload file.');
     }

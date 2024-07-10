@@ -4,7 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Mailsetting;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
+
+use function PHPUnit\Framework\isEmpty;
 
 class MailsettingController extends Controller
 {
@@ -15,13 +18,8 @@ class MailsettingController extends Controller
      */
     public function index()
     {
-        $mailSetting = Mailsetting::all();
-        if ($mailSetting) {
-            // return $mailSetting;
-            foreach ($mailSetting as $key => $value) {
-                echo $value->mail_username . "<br>";
-            }
-        }
+        $userAllMail = Mailsetting::where('user_id', Auth::user()->id)->get();
+        return view('mail.userAllMail', compact('userAllMail'));
     }
 
     /**
@@ -31,7 +29,7 @@ class MailsettingController extends Controller
      */
     public function create()
     {
-        return view('mailSetting');
+        return view('mail.mailSetting');
 
         // Mailsetting::create([
         //     'mail_transport' => 'smtp',
@@ -62,6 +60,8 @@ class MailsettingController extends Controller
             'mail_from' => 'required',
             'mail_sender_name' => 'required',
         ]);
+
+        $userId = Auth::user();
         Mailsetting::create([
             'mail_transport' => $request->mail_transport,
             'mail_host' => $request->mail_host,
@@ -71,6 +71,7 @@ class MailsettingController extends Controller
             'mail_encryption' => $request->mail_encryption,
             'mail_from' => $request->mail_from,
             'mail_sender_name' => $request->mail_sender_name,
+            'user_id' => $userId->id
         ]);
 
         return back()->with('msg', 'You have successfully upload file.');

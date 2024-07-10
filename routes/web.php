@@ -10,9 +10,13 @@ Route::get('/', function (){
     return view('home');
 })->name('home');
 
-Route::resource('mail', ClientMailController::class);
-Route::resource('mailsetting', MailsettingController::class);
+Route::resource('mail', ClientMailController::class)->middleware('auth');
+Route::resource('mailsetting', MailsettingController::class)->middleware('auth');
+Route::resource('/user', UserController::class);
 
+Route::get('/login', [UserController::class, 'login'])->name('login');
+Route::get('/logout', [UserController::class, 'logout'])->name('logout');
+Route::post('/authUser', [UserController::class, 'checkUser'])->name('authUser');
 // Route::get('/sent', [testController::class, 'sentEmail'])->name('sent');
 Route::get('/template', function(){
    return  view('mailtemplate');
