@@ -74,7 +74,7 @@ class MailsettingController extends Controller
             'user_id' => $userId->id
         ]);
 
-        return back()->with('msg', 'You have successfully upload file.');
+        return redirect()->route('mailsetting.index')->with('msg', "Your Mail Addded Successful");
     }
 
     /**
