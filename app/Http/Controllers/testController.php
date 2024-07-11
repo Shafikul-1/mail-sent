@@ -33,6 +33,9 @@ class testController extends Controller
             } catch (\Throwable $th) {
                 echo $th->getMessage();
             }
+        }
+    }
+}
             // foreach ($mailSettings as $mailSettingData) {
             // }
             // echo "<div style='border:3px solid green'>";
@@ -54,9 +57,7 @@ class testController extends Controller
             //     echo "ClientMail Table id not found --> " . $mailSettingData->user_id;
             // }
             // echo "</div>";
-        }
-    }
-}
+
         // Iterate over each mail setting
         // foreach ($mailSettings as $mailSetting) {
         //     // // Configure the mail settings
