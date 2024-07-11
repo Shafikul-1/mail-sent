@@ -6,6 +6,7 @@ use Log;
 use App\Models\ClientMail;
 use App\Models\Sender_mail;
 use App\Models\Mail_message;
+use App\Models\Mailfile;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
@@ -53,7 +54,7 @@ class ClientMailController extends Controller
      */
     public function create()
     {
-        return view('Form');
+        return view('mail.multiMailForm');
     }
 
     /**
@@ -68,9 +69,10 @@ class ClientMailController extends Controller
             'mail_all' => 'required',
             'mail_subject' => 'required',
             'mail_body' => 'required',
-            'mail_files' => 'required',
             // 'mail_files' =>'required|max:50000|mimes:xlsx,doc,docx,ppt,pptx,ods,odt,odp,application/csv,application/excel',
         ]);
+
+        $userId = Auth::user();
         $all_files = array();
         if ($request->file('mail_files')) {
             foreach ($request->file('mail_files') as $key => $value) {
@@ -80,22 +82,37 @@ class ClientMailController extends Controller
             }
         }
 
+        // mail alll file name mail_files table added
         $allFileName = implode(',', $all_files);
-        $allMails = explode(' ', $request->mail_all);
+        if($allFileName !== ""){
+            Mailfile::create([
+                'all_files_name' => $allFileName,
+                'user_id' => $userId->id,
+            ]);
+        } 
+        
+        // Check file upload or select previse file
+        if(!is_null($request->mail_previse_file)){
+            if($allFileName == ""){
+                $allFileName =  $request->mail_previse_file;
+            } else{
+                $allFileName .= "," . $request->mail_previse_file;
+            }
+        }
 
-        // All Other User Emails Push
-        $userId = Auth::user();
+        // All Mail create array and loop
+        $allMails = preg_split('/\s+/', $request->mail_all);
         foreach ($allMails as $allMail) {
             $storeDB = ClientMail::create([
                 'mail' => $allMail,
                 'mail_subject' => $request->mail_subject,
                 'mail_body' => $request->mail_body,
                 'mail_files' => $allFileName,
-                'user_id' => $userId->id
+                'user_id' => $userId->id,
             ]);
         }
 
-        return redirect()->route('mail.show', $userId->id)->with('msg', 'You have successfully upload file.');
+        return redirect()->route('unSendMail')->with('msg', 'You have successfully File upload & All Mail.');
     }
 
     /**

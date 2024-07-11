@@ -13,7 +13,7 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('mail_files', function (Blueprint $table) {
+        Schema::create('mailfiles', function (Blueprint $table) {
             $table->id();
             $table->text('all_files_name');
             $table->integer("user_id");
@@ -28,6 +28,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('mail_files');
+        Schema::dropIfExists('mailfiles');
     }
 };
