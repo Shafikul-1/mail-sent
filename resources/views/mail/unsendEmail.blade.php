@@ -5,7 +5,7 @@
 <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
     <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
             @if (count($unsendEmail) <= 0)
-                <p class="font-bold text-center dark:text-white text-3xl">All Mail Sent Waiting</p>
+                <p class="font-bold text-center dark:text-white text-3xl">Please Added Mail</p>
             @else
         <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
             <tr>

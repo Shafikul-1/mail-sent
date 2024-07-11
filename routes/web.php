@@ -15,8 +15,8 @@ Route::resource('mailsetting', MailsettingController::class)->middleware('auth')
 Route::resource('/user', UserController::class);
 
 Route::get('/login', [UserController::class, 'login'])->name('login');
-Route::get('/logout', [UserController::class, 'logout'])->name('logout');
-Route::get('/sendMail', [ClientMailController::class, 'sendMail'])->name('sendMail');
+Route::get('/logout', [UserController::class, 'logout'])->name('logout')->middleware('auth');
+Route::get('/send-mail', [ClientMailController::class, 'sendMail'])->name('sendMail')->middleware('auth');
 
 
 Route::post('/authUser', [UserController::class, 'checkUser'])->name('authUser');

@@ -5,7 +5,7 @@
 <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
     <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
             @if (count($sendAllMail) <= 0)
-                <p class="font-bold text-center dark:text-white text-3xl">Upcomming Sent Mail</p>
+                <p class="font-bold text-center dark:text-white text-3xl">Wait to see the sent mail</p>
             @else
         <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
             <tr>
@@ -26,6 +26,9 @@
                 </th>
                 <th scope="col" class="px-6 py-3">
                     msg
+                </th>
+                <th scope="col" class="px-6 py-3">
+                    Time
                 </th>
                 <th scope="col" class="px-6 py-3">
                     Action
@@ -52,6 +55,9 @@
                     </td>
                     <td class="px-6 py-4">
                         {!! Str::words($allMail['msg'], 5, '...') !!}
+                    </td>
+                    <td class="px-6 py-4">
+                        {!! $allMail['created_at'] !!}
                     </td>
                     <td class="flex items-center px-6 py-4">
                         <a href="#" class="font-medium text-blue-600 dark:text-blue-500 hover:underline">Edit</a>
