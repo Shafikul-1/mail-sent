@@ -15,6 +15,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Config;
+
 class SendEmailJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
@@ -37,7 +38,6 @@ class SendEmailJob implements ShouldQueue
      */
     public function handle()
     {
-        
         foreach ($this->senderData as $mailSetting) {
             $data = [
                 'driver' => $mailSetting->mail_transport,
@@ -54,26 +54,32 @@ class SendEmailJob implements ShouldQueue
             Config::set('mail', $data);
             Mail::purge();
 
-            $senderData = ClientMail::first();
-            try {
-                Mail::to($senderData->mail)->send(new testMail($senderData, $mailSetting->mail_sender_name));
-                $mailStatus = true;
-            } catch (\Throwable $th) {
-                // echo $th->getMessage();
-                Log::error('Failed to send email with settings: ' . json_encode($mailSetting) . ', Error: ' . $th->getMessage());
-                $mailStatus = false;
+            $senderData = ClientMail::where('user_id', $mailSetting->user_id)->first();
+            if (!is_null($senderData)) {
+                try {
+                    Mail::to($senderData->mail)->send(new testMail($senderData, $mailSetting->mail_sender_name));
+                    $mailStatus = true;
+                    $msg = "Sent success -> " . $senderData->mail;
+                } catch (\Throwable $th) {
+                    echo $th->getMessage();
+                    // Log::error('Failed to send email with settings: ' . json_encode($mailSetting) . ', Error: ' . $th->getMessage());
+                    $mailStatus = false;
+                    $msg = "Sent Failed -> " . $senderData->mail;
+                }
+                $mailMessage = Mail_message::create([
+                    'sender_mail' => $mailSetting->mail_username,
+                    'reciver_mail' => $senderData->mail,
+                    'mail_status' => $mailStatus,
+                    'user_id' => $mailSetting->user_id,
+                    'msg' => ($mailStatus) ? 'Mail sent Succesful' : 'Mail sent failed'
+                ]);
+
+                $senderMailDelete = $senderData->delete();
+            } else{
+                $msg = "ClientMail Table id not found --> " . $mailSetting->user_id . " ";
             }
-            $mailMessage = Mail_message::create([
-                'sender_mail' => $mailSetting->mail_username,
-                'reciver_mail' => $senderData->mail,
-                'mail_status' => $mailStatus,
-                'user_id' => 1,
-                'msg' => ($mailStatus) ? 'Mail sent Succesful' : 'Mail sent failed'
-            ]);
 
-            $senderMailDelete = $senderData->delete();
-
-            echo "success-- ";
+            echo $msg;
         }
     }
 }

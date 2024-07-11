@@ -8,21 +8,52 @@ use App\Mail\testMail;
 use App\Models\ClientMail;
 use App\Models\Mail_message;
 use App\Models\Mailsetting;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+
+use function PHPUnit\Framework\isEmpty;
 
 class testController extends Controller
 {
     public function sentEmail()
     {
         // ini_set('max_execution_time', 300); // Increase execution time limit to 5 minutes
-        $mailSettings = Mailsetting::all();
-        try {
-            SendEmailJob::dispatch($mailSettings);
-            echo "success";
-        } catch (\Throwable $th) {
-            echo $th->getMessage();
+        $allusers = User::all('id');
+        foreach ($allusers as $userId) {
+            $mailSettings = Mailsetting::where('user_id', $userId->id)->get();
+            if ($mailSettings->isEmpty()) {
+                // echo "empty user id = " . $userId->id;
+                continue;
+            }
+            try {
+                SendEmailJob::dispatch($mailSettings);
+                echo "success -- <br>";
+            } catch (\Throwable $th) {
+                echo $th->getMessage();
+            }
+            // foreach ($mailSettings as $mailSettingData) {
+            // }
+            // echo "<div style='border:3px solid green'>";
+            // // echo $mailSettingData->id . "<br>";
+            // // echo $mailSettingData->mail_transport . "<br>";
+            // // echo $mailSettingData->mail_host . "<br>";
+            // // echo $mailSettingData->mail_port . "<br>";
+            // // echo $mailSettingData->mail_username . "<br>";
+            // // echo $mailSettingData->mail_encryption . "<br>";
+            // // echo $mailSettingData->mail_from . "<br>";
+            // // echo $mailSettingData->mail_sender_name . "<br>";
+
+            // echo "user id = " . $mailSettingData->user_id . "<br>";
+
+            // $senderData = ClientMail::where('user_id', $mailSettingData->user_id)->first();
+            // if(!is_null($senderData)){
+            //     echo "First Data = " . $senderData->id;
+            // }else{
+            //     echo "ClientMail Table id not found --> " . $mailSettingData->user_id;
+            // }
+            // echo "</div>";
         }
     }
 }
@@ -93,4 +124,3 @@ class testController extends Controller
     //         Mail::to($senderData->mail)->send(new testMail($senderData));
     //     }
     // }
-
