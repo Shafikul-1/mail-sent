@@ -54,7 +54,14 @@ class ClientMailController extends Controller
      */
     public function create()
     {
-        return view('mail.multiMailForm');
+        $mailFiles = Mailfile::select('all_files_name')->where('user_id', Auth::user()->id)->get();
+        $allFiles = "";
+        foreach ($mailFiles as $files) {
+            $allFiles .= $files['all_files_name'] . ",";
+        }
+        $filesAll = explode(',', $allFiles);
+        // return $filesAll;
+        return view('mail.multiMailForm')->with('allFiles', $filesAll);
     }
 
     /**

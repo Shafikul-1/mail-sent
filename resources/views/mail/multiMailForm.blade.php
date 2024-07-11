@@ -60,15 +60,13 @@
               class="text-gray-900 border border-white hover:border-gray-200 dark:border-gray-900 dark:bg-gray-900 dark:hover:border-gray-700 bg-white focus:ring-4 focus:outline-none focus:ring-gray-300 rounded-full text-base font-medium px-5 py-2.5 text-center me-3 mb-3 dark:text-white dark:focus:ring-gray-800">Gaming</button>
       </div> --}}
       <div class="grid grid-cols-2 md:grid-cols-3 gap-4 bg-gray-300 shadow-lg shadow-blue-500/50 p-9 rounded-xl">
-          @for ($i = 0; $i <= 10; $i++)
-              <div class="selectImage cursor-pointer">
-                  <img onclick="selectImage(event)" class="h-auto max-w-full rounded-lg" name="upload/fvfg-Photoroom_1720717696.png"
-                      src="https://flowbite.s3.amazonaws.com/docs/gallery/square/image.jpg" alt="">
-              </div>
-          @endfor
+        @foreach ($allFiles as $file)
+            <div class="selectImage cursor-pointer">
+                <img onclick="selectImage(event)" class="h-auto max-w-full rounded-lg" name="{{$file}}" src="{{ asset('storage/' . $file) }}" alt="">
+            </div>
+        @endforeach
       </div>
-      <button type="button" onclick="showImageList()"
-          class="mb-[3rem] text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">Added</button>
+      <button type="button" onclick="showImageList()" class="mb-[3rem] text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">Added</button>
   </div>
   <script>
     function showImageList() {
