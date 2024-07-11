@@ -2,10 +2,13 @@
 
 namespace App\Providers;
 
+
+use App\Models\User;
 use App\Models\Mailsetting;
-use Illuminate\Support\ServiceProvider;
-use Config;
 use PSpell\Config as PSpellConfig;
+
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -24,40 +27,16 @@ class AppServiceProvider extends ServiceProvider
      *
      * @return void
      */
-    public function boot()
+    public function boot(): void
     {
-        // $mailSetting = Mailsetting::first();
-        // if ($mailSetting) {
-        //     $data = [
-        //         'driver' => $mailSetting->mail_transport,
-        //         'host' => $mailSetting->mail_host,
-        //         'port' => $mailSetting->mail_port,
-        //         'encryption' => $mailSetting->mail_encryption,
-        //         'username' => $mailSetting->mail_username,
-        //         'password' => $mailSetting->mail_password,
-        //         'from' => [
-        //             'address' => $mailSetting->mail_from,
-        //             'name' => 'test Mail not Env'
-        //         ],
-        //     ];
-        //     Config::set('mail', $data);
-        // };
+        // Admin User
+        Gate::define('isAdmin', function(User $user){
+            return $user->role === 'admin';
+        });
+        
+        // Current User check User Id
+        Gate::define('currentUser', function(User $user, $userId){
+            return $user->id === intval($userId);
+        });
     }
 }
-
-// foreach ($mailSetting as $key => $value) {
-//     // echo $value->mail_username . "<br>";
-//     $data = [
-//         'driver' => $value->mail_transport,
-//         'host' => $value->mail_host,
-//         'port' => $value->mail_port,
-//         'encryption' => $value->mail_encryption,
-//         'username' => $value->mail_username,
-//         'password' => $value->mail_password,
-//         'from' => [
-//             'address' => $value->mail_from,
-//             'name' => $value->mail_sender_name,
-//         ],
-//     ];
-//     Config::set('mail', $data);
-// }

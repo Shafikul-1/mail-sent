@@ -2,14 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use Log;
 use App\Models\ClientMail;
 use App\Models\Sender_mail;
 use App\Models\Mail_message;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Mail;
-use Log;
 
 class ClientMailController extends Controller
 {
@@ -20,6 +21,7 @@ class ClientMailController extends Controller
      */
     public function index()
     {
+        return Auth::user();
         // $SenderMails = Sender_mail::all();
         // $clientMail = ClientMail::first();
         // if ($clientMail) {
@@ -36,7 +38,7 @@ class ClientMailController extends Controller
         //             'msg' => 'mail sent successful'
         //         ]);
         //         $deleteMail = ClientMail::where('mail', $clientMail->mail)->delete();
-                
+
         //         echo "<pre>";
         //         print_r($mail_arr);
         //         echo " </pre>";
@@ -61,7 +63,7 @@ class ClientMailController extends Controller
      * @return \Illuminate\Http\Response
      */
     public function store(Request $request)
-    {       
+    {
         $request->validate([
             'mail_all' => 'required',
             'mail_subject' => 'required',
@@ -104,8 +106,7 @@ class ClientMailController extends Controller
      */
     public function show($id)
     {
-        $unsendEmail = ClientMail::where('user_id', $id)->get();
-        return view('mail.unsendEmail', compact('unsendEmail'));
+        // 
     }
 
     /**
@@ -136,6 +137,13 @@ class ClientMailController extends Controller
     {
         $sendAllMail = Mail_message::where('user_id', Auth::user()->id)->get();
         return view('mail.sendMail', compact('sendAllMail'));
+    }
+
+    // Un Send All Mail
+    public function unSendMail()
+    {
+        $unsendEmail = ClientMail::where('user_id', Auth::user()->id)->get();
+        return view('mail.unsendEmail', compact('unsendEmail'));
     }
 
     /**

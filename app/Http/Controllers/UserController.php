@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 
 class UserController extends Controller
 {
@@ -15,11 +17,10 @@ class UserController extends Controller
      */
     public function index()
     {
-        if(!Auth::check()){
-            return redirect()->route('login');
-        }
-        // $a = Auth::user();
-        // return $a->id;
+        // if(!Gate::allows('isAdmin')){
+        //     return redirect()->route('login');
+        // }
+        Gate::authorize('isAdmin');
         $users = User::all();
         return view('users.allusers', compact('users'));
     }
@@ -45,7 +46,7 @@ class UserController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
-            'phonenumber' => 'required|numeric',
+            'phonenumber' => 'required|numeric|digits:11',
             'password' => 'required|min:6|confirmed',
         ]);
         $setUser = User::create([
@@ -53,27 +54,33 @@ class UserController extends Controller
             'email' => $request->email,
             'phonenumber' => $request->phonenumber,
             'password' => $request->password,
+            'role' => $request->role,
         ]);
-        if($setUser){
-            return redirect()->route('user.index')->with('msg', 'User Create Successful');
+        if ($setUser) {
+            return redirect()->route('mailsetting.index')->with('msg', 'User Create Successful');
         }
     }
 
     // User Login View
-    public function login(){
+    public function login()
+    {
+        if(Auth::check()){
+            return redirect()->back();
+        }
         return view('users.login');
     }
 
     // Login Logic
-    public function checkUser(Request $request){
+    public function checkUser(Request $request)
+    {
         $credentional = $request->validate([
             'email' => 'required|email',
             'password' => 'required|min:6',
         ]);
 
-        if(Auth::attempt($credentional)){
+        if (Auth::attempt($credentional)) {
             return redirect()->route('mailsetting.index')->with('msg', 'User Logged In Successful');
-        } else{
+        } else {
             return redirect()->back()->with('msg', 'User name and Password not match');
         }
     }
@@ -87,7 +94,12 @@ class UserController extends Controller
      */
     public function show($id)
     {
-        //
+        if (Gate::allows('currentUser', intval($id))) {
+            $singleUser = User::find($id);
+            return view('users.profile', compact('singleUser'));
+        } else {
+            abort(403);
+        }
     }
 
     /**
@@ -113,8 +125,9 @@ class UserController extends Controller
         //
     }
 
-    public function logout(){
-        if(!Auth::check()){
+    public function logout()
+    {
+        if (!Auth::check()) {
             return redirect()->route('login');
         }
         Auth::logout();
