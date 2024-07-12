@@ -5,6 +5,7 @@ use App\Http\Controllers\MailsettingController;
 use App\Http\Controllers\testController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\GmailController;
 
 Route::get('/', function (){
     return view('home');
@@ -25,3 +26,10 @@ Route::post('/authUser', [UserController::class, 'checkUser'])->name('authUser')
 Route::get('/template', function(){
    return  view('mailtemplate');
 });
+
+
+
+// Gmail
+Route::get('auth/google', [GmailController::class, 'redirectToGoogle']);
+Route::get('auth/google/callback', [GmailController::class, 'handleGoogleCallback']);
+Route::get('read-emails', [GmailController::class, 'readEmails']);
