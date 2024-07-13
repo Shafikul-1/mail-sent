@@ -37,7 +37,7 @@
         </thead>
         <tbody>
             @foreach ($sendAllMail as $allMail)
-                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                <tr class=" {{($allMail['mail_status'] == 0) ? 'bg-red-800 dark:bg-red-500 dark:hover:bg-red-400' : 'bg-white dark:bg-gray-800 dark:hover:bg-gray-600'}} border-b dark:border-gray-700 hover:bg-gray-50 ">
                     <td scope="row" class="px-6 py-4 font-bold text-gray-900 whitespace-nowrap dark:text-white">
                         {{ $allMail['id']}}
                     </td>
@@ -60,11 +60,10 @@
                         {{$allMail['created_at']}}
                     </td>
                     <td class="flex items-center px-6 py-4">
-                        <a href="#" class="font-medium text-blue-600 dark:text-blue-500 hover:underline"><i class="fa-solid fa-pen-to-square p-5 text-green-600"></i></a>
                         <form action="{{route("mail-message.destroy", $allMail['id'])}}" method="POST">
                             @csrf
                             @method('DELETE')
-                            <button type="submit"><i class="fa-solid fa-trash text-red-600 p-5"></i></button>
+                            <button type="submit"><i class="fa-solid fa-trash text-white hover:text-red-600 p-5"></i></button>
                         </form>
                     </td>
                 </tr>

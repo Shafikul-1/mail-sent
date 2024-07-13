@@ -18,7 +18,7 @@ class MailsettingController extends Controller
      */
     public function index()
     {
-        $userAllMail = Mailsetting::where('user_id', Auth::user()->id)->get();
+        $userAllMail = Mailsetting::where('user_id', Auth::user()->id)->paginate(10);
         return view('mail.userAllMail', compact('userAllMail'));
     }
 
@@ -62,7 +62,7 @@ class MailsettingController extends Controller
         ]);
 
         $userId = Auth::user();
-        Mailsetting::create([
+        $mailSetting = Mailsetting::create([
             'mail_transport' => $request->mail_transport,
             'mail_host' => $request->mail_host,
             'mail_port' => $request->mail_port,
@@ -74,7 +74,11 @@ class MailsettingController extends Controller
             'user_id' => $userId->id
         ]);
 
-        return redirect()->route('mailsetting.index')->with('msg', "Your Mail Addded Successful");
+        if ($mailSetting) {
+            return redirect()->route('mailsetting.index')->with('msg', "Your Mail Addded Successful");
+        } else {
+            return redirect()->back()->with('msg', "Someting Want Wrong");
+        }
     }
 
     /**
@@ -96,7 +100,8 @@ class MailsettingController extends Controller
      */
     public function edit($id)
     {
-        //
+        $editMailSettingData = Mailsetting::find($id);
+        return view('mail.editMailSetting', compact('editMailSettingData'));
     }
 
     /**
@@ -108,7 +113,32 @@ class MailsettingController extends Controller
      */
     public function update(Request $request, $id)
     {
-        //
+        $request->validate([
+            'mail_transport' => 'required',
+            'mail_host' => 'required',
+            'mail_port' => 'required',
+            'mail_username' => 'required',
+            'mail_password' => 'required',
+            'mail_encryption' => 'required',
+            'mail_from' => 'required',
+            'mail_sender_name' => 'required',
+        ]);
+
+        $updateMailSetting = Mailsetting::where('id', $id)->update([
+            'mail_transport' => $request->mail_transport,
+            'mail_host' => $request->mail_host,
+            'mail_port' => $request->mail_port,
+            'mail_username' => $request->mail_username,
+            'mail_password' => $request->mail_password,
+            'mail_encryption' => $request->mail_encryption,
+            'mail_from' => $request->mail_from,
+            'mail_sender_name' => $request->mail_sender_name,
+        ]);
+        if ($updateMailSetting) {
+            return redirect()->route('mailsetting.index')->with('msg', "Your Mail Update Successful");
+        } else {
+            return redirect()->back()->with('msg', "Someting Want Wrong");
+        }
     }
 
     /**
@@ -120,9 +150,9 @@ class MailsettingController extends Controller
     public function destroy($id)
     {
         $deleteItem = Mailsetting::find($id)->delete();
-        if($deleteItem){
+        if ($deleteItem) {
             return redirect()->route("mailsetting.index")->with('msg', "Delete Successful");
-        }else{
+        } else {
             return redirect()->back()->with('msg', "Someting Want Wrong");
         }
     }

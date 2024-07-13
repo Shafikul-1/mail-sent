@@ -72,7 +72,7 @@
                         {{ $allMail['user_id']}}
                     </td>
                     <td class="flex items-center px-6 py-4">
-                        <a href="#" class="font-medium text-blue-600 dark:text-blue-500 hover:underline"><i class="fa-solid fa-pen-to-square p-5 text-green-600"></i></a>
+                        <a href="{{route('mailsetting.edit', $allMail['id'])}}" class="font-medium text-blue-600 dark:text-blue-500 hover:underline"><i class="fa-solid fa-pen-to-square p-5 text-green-600"></i></a>
                         <form action="{{route("mailsetting.destroy", $allMail['id'])}}" method="POST">
                             @csrf
                             @method('DELETE')
@@ -84,6 +84,7 @@
             @endif
         </tbody>
     </table>
+    {{ $userAllMail->links() }}
 </div>
 
 @if (session('msg'))

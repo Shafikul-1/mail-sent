@@ -141,7 +141,8 @@ class ClientMailController extends Controller
      */
     public function edit($id)
     {
-        //
+        $editData = ClientMail::find($id);
+        return view('mail.editUnsendEmail', compact('editData'));
     }
 
     /**
