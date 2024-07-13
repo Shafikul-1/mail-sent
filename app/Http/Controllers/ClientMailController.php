@@ -157,16 +157,16 @@ class ClientMailController extends Controller
     }
 
     // Send All Mail
-    public function sendMail()
-    {
-        $sendAllMail = Mail_message::where('user_id', Auth::user()->id)->get();
-        return view('mail.sendMail', compact('sendAllMail'));
-    }
+    // public function sendMail()
+    // {
+    //     $sendAllMail = Mail_message::where('user_id', Auth::user()->id)->paginate(5);
+    //     return view('mail.sendMail', compact('sendAllMail'));
+    // }
 
     // Un Send All Mail
     public function unSendMail()
     {
-        $unsendEmail = ClientMail::where('user_id', Auth::user()->id)->get();
+        $unsendEmail = ClientMail::where('user_id', Auth::user()->id)->paginate(10);
         return view('mail.unsendEmail', compact('unsendEmail'));
     }
 
@@ -178,6 +178,11 @@ class ClientMailController extends Controller
      */
     public function destroy($id)
     {
-        //
+        $deleteItem = ClientMail::find($id)->delete();
+        if($deleteItem){
+            return redirect()->route("unSendMail")->with('msg', "Delete Successful");
+        }else{
+            return redirect()->back()->with('msg', "Someting Want Wrong");
+        }
     }
 }

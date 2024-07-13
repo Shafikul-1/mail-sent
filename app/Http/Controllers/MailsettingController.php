@@ -119,6 +119,11 @@ class MailsettingController extends Controller
      */
     public function destroy($id)
     {
-        //
+        $deleteItem = Mailsetting::find($id)->delete();
+        if($deleteItem){
+            return redirect()->route("mailsetting.index")->with('msg', "Delete Successful");
+        }else{
+            return redirect()->back()->with('msg', "Someting Want Wrong");
+        }
     }
 }

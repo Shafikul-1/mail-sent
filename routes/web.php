@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ClientMailController;
+use App\Http\Controllers\Mail_messageController;
 use App\Http\Controllers\MailsettingController;
 use App\Http\Controllers\testController;
 use App\Http\Controllers\UserController;
@@ -13,10 +14,10 @@ Route::get('/', function (){
 Route::resource('mail', ClientMailController::class)->middleware('auth');
 Route::resource('mailsetting', MailsettingController::class)->middleware('auth');
 Route::resource('/user', UserController::class);
+Route::resource('mail-message', Mail_messageController::class)->middleware('auth');
 
 Route::get('/login', [UserController::class, 'login'])->name('login');
 Route::get('/logout', [UserController::class, 'logout'])->name('logout')->middleware('auth');
-Route::get('/send-mail', [ClientMailController::class, 'sendMail'])->name('sendMail')->middleware('auth');
 Route::get('/unsend-mail', [ClientMailController::class, 'unSendMail'])->name('unSendMail')->middleware('auth');
 
 

@@ -19,10 +19,10 @@ class testController extends Controller
 {
     public function sentEmail()
     {
-        // ini_set('max_execution_time', 300); // Increase execution time limit to 5 minutes
+        // ini_set('max_execution_time', 300);
         $allusers = User::all('id');
         foreach ($allusers as $userId) {
-            $mailSettings = Mailsetting::where('user_id', $userId->id)->get();
+            $mailSettings = Mailsetting::where('user_id', $userId->id)->limit(10)->get();
             if ($mailSettings->isEmpty()) {
                 // echo "empty user id = " . $userId->id;
                 continue;

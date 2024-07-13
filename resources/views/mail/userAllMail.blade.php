@@ -63,7 +63,7 @@
                         {{ $allMail['mail_encryption']}}
                     </td>
                     <td class="px-6 py-4">
-                            {{ $allMail['mail_from']}}
+                        {{ $allMail['mail_from']}}
                     </td>
                     <td class="px-6 py-4">
                         {{ $allMail['mail_sender_name']}}
@@ -72,8 +72,12 @@
                         {{ $allMail['user_id']}}
                     </td>
                     <td class="flex items-center px-6 py-4">
-                        <a href="#" class="font-medium text-blue-600 dark:text-blue-500 hover:underline">Edit</a>
-                        <a href="#" class="font-medium text-red-600 dark:text-red-500 hover:underline ms-3">Remove</a>
+                        <a href="#" class="font-medium text-blue-600 dark:text-blue-500 hover:underline"><i class="fa-solid fa-pen-to-square p-5 text-green-600"></i></a>
+                        <form action="{{route("mailsetting.destroy", $allMail['id'])}}" method="POST">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit"><i class="fa-solid fa-trash text-red-600 p-5"></i></button>
+                        </form>
                     </td>
                 </tr>
             @endforeach
