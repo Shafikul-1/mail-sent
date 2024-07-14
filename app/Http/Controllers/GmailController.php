@@ -17,6 +17,7 @@ class GmailController extends Controller
         $this->client = new Client();
         $this->client->setAuthConfig(storage_path('app/client_secrate.json'));
         $this->client->addScope('https://www.googleapis.com/auth/gmail.readonly');
+        $this->client->addScope('https://www.googleapis.com/auth/gmail.modify');
         $this->client->setRedirectUri('http://127.0.0.1:8000/gmail/callback');
         $this->client->setAccessType('offline');
         $this->client->setPrompt('consent');
@@ -100,6 +101,7 @@ class GmailController extends Controller
         // return $data;
     }
 
+    // inbox Single message View
     public function singleInboxMessage($messageId)
     {
         try {
@@ -115,9 +117,100 @@ class GmailController extends Controller
 
             // $messageData = response()->json($fullDetails);
             $messageData = $fullDetails->toSimpleObject();
-            return view('gmail.inbox.singleMessageDetails' , compact('messageData'));
+            return view('gmail.inbox.singleMessageDetails', compact('messageData'));
             // return $messageData;
 
+        } catch (\Throwable $th) {
+            return $th->getMessage();
+        }
+    }
+
+    // Sent Message All
+    public function sentAllMessage()
+    {
+        try {
+            $dbgoogleToken = GoogleToken::where('user_id', 1)->get();
+            if (!$dbgoogleToken[0]) {
+                return redirect()->route('home')->with('msg', "Token Is null");
+            }
+            $this->client->setAccessToken(json_decode($dbgoogleToken[0]->access_token, true));
+
+            // Create Gmail service
+            $gmail = new Gmail($this->client);
+            $sentEmailData = $gmail->users_messages->listUsersMessages('me', ['q' => 'is:sent']);
+            $sentMessage = $sentEmailData->getMessages();
+            return view('gmail.sent.sentMessages', compact('sentMessage'));
+            // return $allsentMessage;
+
+        } catch (\Throwable $th) {
+            return $th->getMessage();
+        }
+    }
+
+    // Sent Single message View
+    public function singleSentMessage($messageId)
+    {
+        try {
+            $dbgoogleToken = GoogleToken::where('user_id', 1)->get();
+            if (!$dbgoogleToken[0]) {
+                return redirect()->route('home')->with('msg', "Token Is null");
+            }
+            $this->client->setAccessToken(json_decode($dbgoogleToken[0]->access_token, true));
+
+            // Create Gmail service
+            $gmail = new Gmail($this->client);
+            $fullDetails = $gmail->users_messages->get('me', $messageId);
+            // ----------------
+
+
+            $messageDate = $fullDetails->getInternalDate();
+            $subject = '';
+            foreach ($fullDetails->getPayload()->getHeaders() as $header) {
+                if ($header->getName() == 'Subject') {
+                    $subject = $header->getValue();
+                    break;
+                }
+            }
+
+            $bodyData = '';
+            $attachMent = [];
+
+            $processPart = function ($parts) use (&$bodyData, &$attachMent, &$processPart) {
+                foreach ($parts as $part) {
+                    if ($part->getMimeType() == 'text/html') {
+                        if ($part->getBody() && $part->getBody()->getData()) {
+                            // $bodyData .= $part->getBody()->getData();
+                            // $bodyData .= base64_decode($part->getBody()->getData());
+                            $bodyData .= base64_decode(str_replace(['-', '_'], ['+', '/'], $part->getBody()->getData()));
+                        }
+                    }
+
+                    if($part->getFilename()){
+                        $attachMent[] = [
+                            'fileName' => $part->getFilename(),
+                            'fileId' => $part->getBody()->getAttachmentId(),
+                        ];
+                    }
+
+                    if($part->getParts()){
+                        $processPart($part->getParts());
+                    }
+                }
+            };
+
+            $payload = $fullDetails->getPayload();
+            $processPart([$payload]);
+
+
+            // Pass data to blade view
+            return view('check', [
+                'messageDate' => $messageDate,
+                'subject' => $subject,
+                'attachments' => $attachMent,
+                'bodyData' => $bodyData,
+            ]);
+            // $messageData = $fullDetails->toSimpleObject();
+            // return $bodyData;
         } catch (\Throwable $th) {
             return $th->getMessage();
         }

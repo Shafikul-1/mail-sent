@@ -34,3 +34,5 @@ Route::get('/gmail/auth', [GmailController::class, 'redirectToGoogle'])->name('r
 Route::get('/gmail/callback', [GmailController::class, 'handleGoogleCallback'])->name('handleGoogleCallback');
 Route::get('/gmail/inbox', [GmailController::class, 'getMail'])->name('getMail');
 Route::get('gmail/inbox/{id}', [GmailController::class, 'singleInboxMessage'])->name('singleInboxMessage');
+Route::get('/gmail/sent', [GmailController::class, 'sentAllMessage'])->name('sentAllMessage');
+Route::get('/gmail/sent/{id}', [GmailController::class, 'singleSentMessage'])->name('singleSentMessage');
