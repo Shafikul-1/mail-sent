@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\GoogleToken;
 use Google\Client;
 use Google\Service\Gmail;
+use Google\Service\Gmail\Message;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Log;
 
 class GmailController extends Controller
 {
@@ -18,6 +20,7 @@ class GmailController extends Controller
         $this->client->setAuthConfig(storage_path('app/client_secrate.json'));
         $this->client->addScope('https://www.googleapis.com/auth/gmail.readonly');
         $this->client->addScope('https://www.googleapis.com/auth/gmail.modify');
+        $this->client->addScope('https://www.googleapis.com/auth/gmail.send');
         $this->client->setRedirectUri('http://127.0.0.1:8000/gmail/callback');
         $this->client->setAccessType('offline');
         $this->client->setPrompt('consent');
@@ -185,14 +188,14 @@ class GmailController extends Controller
                         }
                     }
 
-                    if($part->getFilename()){
+                    if ($part->getFilename()) {
                         $attachMent[] = [
                             'fileName' => $part->getFilename(),
                             'fileId' => $part->getBody()->getAttachmentId(),
                         ];
                     }
 
-                    if($part->getParts()){
+                    if ($part->getParts()) {
                         $processPart($part->getParts());
                     }
                 }
@@ -203,7 +206,8 @@ class GmailController extends Controller
 
 
             // Pass data to blade view
-            return view('check', [
+            return view('gmail.sent.singleMessageDetails', [
+                'messageId' => $messageId,
                 'messageDate' => $messageDate,
                 'subject' => $subject,
                 'attachments' => $attachMent,
@@ -214,5 +218,163 @@ class GmailController extends Controller
         } catch (\Throwable $th) {
             return $th->getMessage();
         }
+    }
+
+    // sent message view page
+    public function sentMessageReply($messageId)
+    {
+        return view('gmail.sent.sentMesssageReply', compact('messageId'));
+    }
+
+    // sent message reply
+    // public function messageSent(Request $request, $messageId){
+    //     $dbgoogleToken = GoogleToken::where('user_id', 1)->get();
+    //     if (!$dbgoogleToken[0]) {
+    //         return redirect()->route('home')->with('msg', "Token Is null");
+    //     }
+    //     $this->client->setAccessToken(json_decode($dbgoogleToken[0]->access_token, true));
+
+    //     // Check if token has the required scopes
+    //     if ($this->client->isAccessTokenExpired()) {
+    //         $this->client->fetchAccessTokenWithRefreshToken($this->client->getRefreshToken());
+    //         $newToken =  json_encode($this->client->getAccessToken());
+    //         GoogleToken::where('user_id', 1)->update([
+    //             'access_token' => $newToken,
+    //         ]);
+    //     }
+
+    //     if (!$this->client->isAccessTokenExpired()) {
+    //         $requiredScopes = ['https://www.googleapis.com/auth/gmail.send'];
+    //         $currentScopes = $this->client->getScopes();
+
+    //         $missingScopes = array_diff($requiredScopes, $currentScopes);
+
+    //         if (!empty($missingScopes)) {
+    //             // If token doesn't have the required scope, force reauthorization
+    //             $authUrl = $this->client->createAuthUrl();
+    //             return redirect($authUrl);
+    //         }
+    //     }
+
+
+    //     // Create Gmail service
+    //     $gmail = new Gmail($this->client);
+    //     try {
+    //         $originalMessage = $gmail->users_messages->get('me', $messageId);
+    //         $threadId = $originalMessage->getThreadId();
+    //         // echo $threadId . "<br>";
+    //         // Prepare Replay Message
+    //         $replyText = $request->input('reply');
+    //         // echo $replyText . "<br>";
+
+    //         $replyMessage = new Message();
+
+    //         $rawMessage = "To: " . $this->getHeader($originalMessage, 'From') . "\r\n";
+    //         $rawMessage .= "Subject: Re: " . $this->getHeader($originalMessage, 'Subject') . "\r\n";
+    //         $rawMessage .= "In-Reply-To: " . $this->getHeader($originalMessage, 'Message-ID') . "\r\n";
+    //         $rawMessage .= "References: " . $this->getHeader($originalMessage, 'Message-ID') . "\r\n";
+    //         $rawMessage .= "\r\n" . $replyText;
+
+    //         $rawMessageEncode = base64_encode($rawMessage);
+    //         $plainRawMessage = str_replace(['+', '/', '='], ['-', '_', ''], $rawMessageEncode);
+
+    //         // echo $plainRawMessage;
+    //         $replyMessage->setRaw($plainRawMessage);
+    //         $replyMessage->setThreadId($threadId);
+
+    //         // Sent The reply
+    //         $sentMessage = $gmail->users_messages->send('me', $replyMessage);
+    //         return response()->json(['message' => 'Reply sent successfully']);
+    //     } catch (\Google_Service_Exception $th) {
+    //         return $th->getMessage();
+    //         // return response()->json(['error' => $th->getMessage()]);
+    //     }
+    // }
+
+    // Send message reply
+    public function messageSent(Request $request, $messageId)
+    {
+        $dbgoogleToken = GoogleToken::where('user_id', 1)->first();
+        if (!$dbgoogleToken) {
+            return redirect()->route('home')->with('msg', "Token is null");
+        }
+
+        $tokenData = json_decode($dbgoogleToken->access_token, true);
+        $this->client->setAccessToken($tokenData);
+
+        // Check if token has expired
+        if ($this->client->isAccessTokenExpired()) {
+            Log::info('Access token expired. Refreshing token.');
+            $this->client->fetchAccessTokenWithRefreshToken($this->client->getRefreshToken());
+            $newToken = json_encode($this->client->getAccessToken());
+            GoogleToken::where('user_id', 1)->update(['access_token' => $newToken]);
+            $tokenData = $this->client->getAccessToken(); // Update tokenData after refresh
+        }
+
+        // Check if the access token has the required scopes
+        Log::info('Current token scopes:', ['scopes' => $tokenData['scope']]);
+        $requiredScopes = [
+            'https://www.googleapis.com/auth/gmail.readonly',
+            'https://www.googleapis.com/auth/gmail.modify',
+            'https://www.googleapis.com/auth/gmail.send'
+        ];
+        $currentScopes = explode(' ', $tokenData['scope'] ?? '');
+
+        $missingScopes = array_diff($requiredScopes, $currentScopes);
+        if (!empty($missingScopes)) {
+            Log::info('Missing scopes:', ['missingScopes' => $missingScopes]);
+            // If token doesn't have the required scope, force reauthorization
+            $authUrl = $this->client->createAuthUrl();
+            return redirect($authUrl);
+        }
+
+        // Create Gmail service
+        $gmail = new Gmail($this->client);
+        try {
+            $originalMessage = $gmail->users_messages->get('me', $messageId);
+            $threadId = $originalMessage->getThreadId();
+
+            // Prepare Reply Message
+            $replyText = $request->input('reply');
+
+            $replyMessage = new Message();
+
+            // Set recipient email address
+            $recipientEmail = $this->getHeader($originalMessage, 'To'); // Assuming From header is the recipient's email
+            if (!$recipientEmail) {
+                return response()->json(['error' => 'Recipient email not found']);
+            }
+//             $messageData = $originalMessage->toSimpleObject();
+// return $messageData;
+            $rawMessage = "To: " . $recipientEmail . "\r\n";
+            $rawMessage .= "Subject: Re: " . $this->getHeader($originalMessage, 'Subject') . "\r\n";
+            $rawMessage .= "In-Reply-To: " . $this->getHeader($originalMessage, 'Message-ID') . "\r\n";
+            $rawMessage .= "References: " . $this->getHeader($originalMessage, 'Message-ID') . "\r\n";
+            $rawMessage .= "\r\n" . $replyText;
+
+            $rawMessageEncode = base64_encode($rawMessage);
+            $plainRawMessage = str_replace(['+', '/', '='], ['-', '_', ''], $rawMessageEncode);
+
+            $replyMessage->setRaw($plainRawMessage);
+            $replyMessage->setThreadId($threadId);
+
+            // Send the reply
+            $sentMessage = $gmail->users_messages->send('me', $replyMessage);
+
+            return response()->json(['message' => 'Reply sent successfully']);
+        } catch (\Google\Service\Exception $e) {
+            Log::error('Error sending message:', ['error' => $e->getMessage()]);
+            return response()->json(['error' => $e->getMessage()]);
+        }
+    }
+
+    private function getHeader($message, $name)
+    {
+        foreach ($message->getPayload()->getHeaders() as $header) {
+            if ($header->getName() === $name) {
+                return $header->getValue();
+            }
+        }
+        return null;
     }
 }

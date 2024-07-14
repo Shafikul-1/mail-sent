@@ -36,3 +36,5 @@ Route::get('/gmail/inbox', [GmailController::class, 'getMail'])->name('getMail')
 Route::get('gmail/inbox/{id}', [GmailController::class, 'singleInboxMessage'])->name('singleInboxMessage');
 Route::get('/gmail/sent', [GmailController::class, 'sentAllMessage'])->name('sentAllMessage');
 Route::get('/gmail/sent/{id}', [GmailController::class, 'singleSentMessage'])->name('singleSentMessage');
+Route::get('/gmail/sent/reply/{messageId}', [GmailController::class, 'sentMessageReply'])->name('sentMessageReply');
+Route::post('/gmail/sent-message/{messageId}', [GmailController::class, 'messageSent'])->name('messageSent');
