@@ -32,4 +32,5 @@ Route::get('/template', function(){
 // Gmail
 Route::get('/gmail/auth', [GmailController::class, 'redirectToGoogle'])->name('redirectToGoogle');
 Route::get('/gmail/callback', [GmailController::class, 'handleGoogleCallback'])->name('handleGoogleCallback');
-Route::get('/checking', [GmailController::class, 'checking'])->name('checking');
+Route::get('/gmail/inbox', [GmailController::class, 'getMail'])->name('getMail');
+Route::get('gmail/inbox/{id}', [GmailController::class, 'singleInboxMessage'])->name('singleInboxMessage');
