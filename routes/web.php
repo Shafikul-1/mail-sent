@@ -30,6 +30,6 @@ Route::get('/template', function(){
 
 
 // Gmail
-Route::get('auth/google', [GmailController::class, 'redirectToGoogle']);
-Route::get('auth/google/callback', [GmailController::class, 'handleGoogleCallback']);
-Route::get('read-emails', [GmailController::class, 'readEmails']);
+Route::get('/gmail/auth', [GmailController::class, 'redirectToGoogle'])->name('redirectToGoogle');
+Route::get('/gmail/callback', [GmailController::class, 'handleGoogleCallback'])->name('handleGoogleCallback');
+Route::get('/checking', [GmailController::class, 'checking'])->name('checking');

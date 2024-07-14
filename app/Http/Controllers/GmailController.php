@@ -2,69 +2,61 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\GoogleToken;
 use Google\Client;
-use Google\Service\Gmail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 
 class GmailController extends Controller
 {
+    private $client;
+    // SEt Client
+    public function __construct()
+    {
+        $this->client = new Client();
+        $this->client->setAuthConfig(storage_path('app/client_secrate.json'));
+        $this->client->addScope('https://www.googleapis.com/auth/gmail.readonly');
+        $this->client->setRedirectUri('http://127.0.0.1:8000/gmail/callback');
+        $this->client->setAccessType('offline');
+        $this->client->setPrompt('consent');
+    }
+
+    // REdirect Working
     public function redirectToGoogle()
     {
-        $client = new Client();
-        $client->setClientId(config('google.client_id'));
-        $client->setClientSecret(config('google.client_secret'));
-        $client->setRedirectUri(config('google.redirect_uri'));
-        $client->addScope(Gmail::GMAIL_READONLY);
-
-        return redirect($client->createAuthUrl());
+        $authUrl = $this->client->createAuthUrl();
+        return redirect()->away($authUrl);
     }
 
+    // Authentecation All Handle code
     public function handleGoogleCallback(Request $request)
     {
-        $client = new Client();
-        $client->setClientId(config('google.client_id'));
-        $client->setClientSecret(config('google.client_secret'));
-        $client->setRedirectUri(config('google.redirect_uri'));
-        $client->authenticate($request->get('code'));
+        $code = $request->input('code');
+        if (empty($code)) {
+            return redirect()->route('home')->with('msg', "Code is messing");
+        }
 
-        $token = $client->getAccessToken();
-        Session::put('access_token', $token);
+        $this->client->setRedirectUri(route('handleGoogleCallback'));
 
-        return redirect('/read-emails');
-    }
+        try {
+            $token = $this->client->fetchAccessTokenWithAuthCode($code);
+            if (isset($token['error'])) {
+                return redirect()->route('home')->with('msg', "Error Code is messing" . $token['error']);
+            }
 
-    public function readEmails()
-    {
-        $client = new Client();
-        $client->setAccessToken(Session::get('access_token'));
+            Session::put('google_token', $token);
 
-        $service = new Gmail($client);
+            $token_expiry = now()->addSeconds($token['expires_in']);
+            $refresh_token = $token['refresh_token'];
+            $tokenSave = GoogleToken::create([
+                'access_token' => json_encode($token),
+                'refresh_token' => $refresh_token,
+                'token_expiry' => $token_expiry,
+            ]);
 
-        $messages = $service->users_messages->listUsersMessages('me');
-
-        return view('emails.index', ['messages' => $messages]);
-    }
-
-    public function sendEmail(Request $request)
-    {
-        $client = new Client();
-        $client->setAccessToken(Session::get('access_token'));
-
-        $service = new Gmail($client);
-
-        $message = new \Google\Service\Gmail\Message();
-
-        $rawMessageString = "From: you@example.com\r\n";
-        $rawMessageString .= "To: {$request->to}\r\n";
-        $rawMessageString .= "Subject: {$request->subject}\r\n\r\n";
-        $rawMessageString .= $request->message;
-
-        $rawMessage = base64_encode($rawMessageString);
-        $message->setRaw($rawMessage);
-
-        $service->users_messages->send('me', $message);
-
-        return redirect()->back()->with('success', 'Email sent successfully!');
+            return redirect()->route('home')->with('msg', "auth Successful");
+        } catch (\Throwable $th) {
+            return redirect()->route('home')->with('msg', "authError" . $th->getMessage());
+        }
     }
 }
