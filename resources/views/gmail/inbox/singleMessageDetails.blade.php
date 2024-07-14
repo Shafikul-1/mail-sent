@@ -26,8 +26,8 @@
             <div class=" border-2 p-3 my-3">
                 @foreach ($messageData->payload->headers as $headerData)
                     <p> name => {{ $headerData->name }}</p>
-                    {{-- <p> size => {{ html_entity_decode($headerData->value) }}</p> --}}
-                    <p> value not work, => {{ json_encode(json_decode($headerData->value, true), JSON_PRETTY_PRINT) }}</p>
+                    <p> size => {{ html_entity_decode($headerData->value) }}</p>
+                    {{-- <p> value not work, => {{ json_encode(json_decode($headerData->value, true), JSON_PRETTY_PRINT) }}</p> --}}
                 @endforeach
             </div>
 
@@ -54,7 +54,7 @@
 
                         <div class=" border-2 p-3 my-3">
                             <p class="text-center text-xl dark:text-white my-3">PayLoad -> body -> parts -> body</p>
-                            <p> data => {{ $part->body->data }}</p>
+                            {{-- <p> data => {{ $part->body->data }}</p> --}}
                             <p> size => {{ $part->body->size }}</p>
                         </div>
                     </div>
