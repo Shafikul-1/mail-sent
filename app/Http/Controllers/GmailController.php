@@ -204,6 +204,8 @@ class GmailController extends Controller
             $payload = $fullDetails->getPayload();
             $processPart([$payload]);
 
+            // $messageData = $fullDetails->toSimpleObject();
+            // return $messageData;
 
             // Pass data to blade view
             return view('gmail.sent.singleMessageDetails', [
@@ -213,8 +215,6 @@ class GmailController extends Controller
                 'attachments' => $attachMent,
                 'bodyData' => $bodyData,
             ]);
-            // $messageData = $fullDetails->toSimpleObject();
-            // return $bodyData;
         } catch (\Throwable $th) {
             return $th->getMessage();
         }
@@ -294,6 +294,63 @@ class GmailController extends Controller
     // Send message reply
     public function messageSent(Request $request, $messageId)
     {
+        $checking = $this->checkAccess();
+        if ($checking) {
+            // Create Gmail service
+            $gmail = new Gmail($this->client);
+            try {
+                $originalMessage = $gmail->users_messages->get('me', $messageId);
+                $threadId = $originalMessage->getThreadId();
+
+                // Prepare Reply Message
+                $replyText = $request->input('reply');
+
+                $replyMessage = new Message();
+
+                
+                $rawMessage = "To: " .  $this->getHeader($originalMessage, 'To')  . "\r\n";
+                $rawMessage .= "Subject: Re: " . $this->getHeader($originalMessage, 'Subject') . "\r\n";
+                $rawMessage .= "In-Reply-To: " . $this->getHeader($originalMessage, 'Message-ID') . "\r\n";
+                $rawMessage .= "References: " . $this->getHeader($originalMessage, 'Message-ID') . "\r\n";
+                $rawMessage .= "\r\n" . $replyText;
+                
+                // $messageData = $originalMessage->toSimpleObject();
+                // return $messageData;
+
+
+                $rawMessageEncode = base64_encode($rawMessage);
+                $plainRawMessage = str_replace(['+', '/', '='], ['-', '_', ''], $rawMessageEncode);
+
+                $replyMessage->setRaw($plainRawMessage);
+                $replyMessage->setThreadId($threadId);
+
+                // Send the reply
+                $sentMessage = $gmail->users_messages->send('me', $replyMessage);
+
+                return response()->json(['message' => 'Reply sent successfully']);
+            } catch (\Google\Service\Exception $e) {
+                Log::error('Error sending message:', ['error' => $e->getMessage()]);
+                return response()->json(['error' => $e->getMessage()]);
+            }
+        } else {
+            return redirect()->route('home')->with('msg', "Token Expare");
+        }
+    }
+
+    // search Information Headers
+    private function getHeader($message, $name)
+    {
+        foreach ($message->getPayload()->getHeaders() as $header) {
+            if ($header->getName() === $name) {
+                return $header->getValue();
+            }
+        }
+        return null;
+    }
+
+    // CHeck User Token Access ?
+    private function checkAccess()
+    {
         $dbgoogleToken = GoogleToken::where('user_id', 1)->first();
         if (!$dbgoogleToken) {
             return redirect()->route('home')->with('msg', "Token is null");
@@ -310,71 +367,8 @@ class GmailController extends Controller
             GoogleToken::where('user_id', 1)->update(['access_token' => $newToken]);
             $tokenData = $this->client->getAccessToken(); // Update tokenData after refresh
         }
-
-        // Check if the access token has the required scopes
-        Log::info('Current token scopes:', ['scopes' => $tokenData['scope']]);
-        $requiredScopes = [
-            'https://www.googleapis.com/auth/gmail.readonly',
-            'https://www.googleapis.com/auth/gmail.modify',
-            'https://www.googleapis.com/auth/gmail.send'
-        ];
-        $currentScopes = explode(' ', $tokenData['scope'] ?? '');
-
-        $missingScopes = array_diff($requiredScopes, $currentScopes);
-        if (!empty($missingScopes)) {
-            Log::info('Missing scopes:', ['missingScopes' => $missingScopes]);
-            // If token doesn't have the required scope, force reauthorization
-            $authUrl = $this->client->createAuthUrl();
-            return redirect($authUrl);
-        }
-
-        // Create Gmail service
-        $gmail = new Gmail($this->client);
-        try {
-            $originalMessage = $gmail->users_messages->get('me', $messageId);
-            $threadId = $originalMessage->getThreadId();
-
-            // Prepare Reply Message
-            $replyText = $request->input('reply');
-
-            $replyMessage = new Message();
-
-            // Set recipient email address
-            $recipientEmail = $this->getHeader($originalMessage, 'To'); // Assuming From header is the recipient's email
-            if (!$recipientEmail) {
-                return response()->json(['error' => 'Recipient email not found']);
-            }
-//             $messageData = $originalMessage->toSimpleObject();
-// return $messageData;
-            $rawMessage = "To: " . $recipientEmail . "\r\n";
-            $rawMessage .= "Subject: Re: " . $this->getHeader($originalMessage, 'Subject') . "\r\n";
-            $rawMessage .= "In-Reply-To: " . $this->getHeader($originalMessage, 'Message-ID') . "\r\n";
-            $rawMessage .= "References: " . $this->getHeader($originalMessage, 'Message-ID') . "\r\n";
-            $rawMessage .= "\r\n" . $replyText;
-
-            $rawMessageEncode = base64_encode($rawMessage);
-            $plainRawMessage = str_replace(['+', '/', '='], ['-', '_', ''], $rawMessageEncode);
-
-            $replyMessage->setRaw($plainRawMessage);
-            $replyMessage->setThreadId($threadId);
-
-            // Send the reply
-            $sentMessage = $gmail->users_messages->send('me', $replyMessage);
-
-            return response()->json(['message' => 'Reply sent successfully']);
-        } catch (\Google\Service\Exception $e) {
-            Log::error('Error sending message:', ['error' => $e->getMessage()]);
-            return response()->json(['error' => $e->getMessage()]);
-        }
+        return true;
     }
 
-    private function getHeader($message, $name)
-    {
-        foreach ($message->getPayload()->getHeaders() as $header) {
-            if ($header->getName() === $name) {
-                return $header->getValue();
-            }
-        }
-        return null;
-    }
+
 }
