@@ -5,12 +5,13 @@ namespace App\Http\Controllers;
 use Google\Client;
 use App\Models\User;
 use Google\Service\Gmail;
+use Google\Service\Oauth2;
 use App\Models\GoogleToken;
 use Illuminate\Http\Request;
 use Google_Service_Exception;
 use Google\Service\Gmail\Message;
-use Google\Service\Oauth2;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 
 class GmailController extends Controller
@@ -120,9 +121,10 @@ class GmailController extends Controller
 
 
             // Check if the user exists
+            $reandomPass = rand(20, 300);
             $user = User::firstOrCreate(
                 ['email' => $email],
-                ['name' => $name, 'password' => rand(20, 300)]
+                ['name' => $name, 'password' => $reandomPass]
             );
 
             // Save or update the token
@@ -134,6 +136,19 @@ class GmailController extends Controller
                 ]
             );
 
+            // User Login
+            $loginUser = Auth::attempt([
+                'email' => $email,
+                'password' => $reandomPass,
+            ]);
+
+            // Check login
+            if ($loginUser) {
+                return redirect()->route('home')->with('msg', 'User Logged In Successful');
+            } else {
+                return redirect()->route('home')->with('msg', 'Someting Want Wrong');
+            }
+
             return redirect()->route('home')->with('msg', "Auth Successful");
         } catch (\Throwable $th) {
             return redirect()->route('home')->with('msg', "authError" . $th->getMessage());
@@ -143,22 +158,9 @@ class GmailController extends Controller
     // GEt All Gail
     public function getMail()
     {
-        $dbgoogleToken = GoogleToken::where('user_id', 1)->get();
-        if (!$dbgoogleToken[0]) {
-            return redirect()->route('home')->with('msg', "Token Is null");
-        }
-
-        $this->client->setAccessToken(json_decode($dbgoogleToken[0]->access_token, true));
-
-        if ($this->client->isAccessTokenExpired()) {
-            if (!empty($dbgoogleToken[0]->refresh_token)) {
-                $newToken = $this->client->fetchAccessTokenWithRefreshToken($dbgoogleToken[0]->refresh_token);
-                $dbgoogleToken[0]->access_token = json_encode($newToken);
-                $dbgoogleToken[0]->token_expiry = now()->addSeconds($newToken['expires_in']);
-                $dbgoogleToken[0]->save();
-            } else {
-                return redirect()->route('home')->with('msg', "Refresh token not found.");
-            }
+        $accessCheck = $this->checkAccess();
+        if (!$accessCheck) {
+            return redirect()->route('home')->with('msg', "checkAccess denided");
         }
 
         // $gmail = new \Google\Service\Gmail($this->client);
@@ -486,7 +488,7 @@ class GmailController extends Controller
     // CHeck User Token Access ?
     private function checkAccess()
     {
-        $dbgoogleToken = GoogleToken::where('user_id', 1)->first();
+        $dbgoogleToken = GoogleToken::where('user_id', 3)->first();
         if (!$dbgoogleToken) {
             return redirect()->route('home')->with('msg', "Token is null");
         }
