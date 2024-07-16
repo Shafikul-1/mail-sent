@@ -60,8 +60,9 @@ class ClientMailController extends Controller
             $allFiles .= $files['all_files_name'] . ",";
         }
         $filesAll = explode(',', $allFiles);
-        // return $filesAll;
-        return view('mail.multiMailForm')->with('allFiles', $filesAll);
+        $filterFileName = array_filter($filesAll);
+        // return $filterFileName;
+        return view('mail.multiMailForm')->with('allFiles', $filterFileName);
     }
 
     /**
