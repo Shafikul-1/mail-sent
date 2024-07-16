@@ -138,7 +138,7 @@
                 selectImage.classList.add('p-1', 'rounded', 'border-4', 'border-sky-500');
             }
 
-            // console.log(mail_previse_file.value);
+            // console.log(mail_previse_file.value); 
         }
     </script>
 @endsection
