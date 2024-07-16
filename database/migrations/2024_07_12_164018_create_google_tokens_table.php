@@ -9,10 +9,9 @@ class CreateGoogleTokensTable extends Migration
     {
         Schema::create('google_tokens', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('user_id')->nullable();
+            $table->unsignedBigInteger('user_id');
             $table->json('access_token');
-            $table->text('refresh_token');
-            $table->timestamp('token_expiry');
+            $table->json('access_info');
             $table->timestamps();
         });
     }

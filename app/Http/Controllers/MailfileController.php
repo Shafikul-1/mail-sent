@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class MailfileController extends Controller
@@ -13,7 +14,9 @@ class MailfileController extends Controller
      */
     public function index()
     {
-        //
+        $data = User::where('email', 'shafikul@gmail.com')->count();
+        
+        return $data;
     }
 
     /**
