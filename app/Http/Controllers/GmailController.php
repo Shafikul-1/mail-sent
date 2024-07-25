@@ -121,10 +121,10 @@ class GmailController extends Controller
 
 
             // Check if the user exists
-            $reandomPass = rand(20, 300);
+            $genaratePass = "GoogleLoginGenaratePass123";
             $user = User::firstOrCreate(
                 ['email' => $email],
-                ['name' => $name, 'password' => $reandomPass]
+                ['name' => $name, 'password' => $genaratePass]
             );
 
             // Save or update the token
@@ -139,17 +139,16 @@ class GmailController extends Controller
             // User Login
             $loginUser = Auth::attempt([
                 'email' => $email,
-                'password' => $reandomPass,
+                'password' => $genaratePass,
             ]);
 
             // Check login
             if ($loginUser) {
                 return redirect()->route('home')->with('msg', 'User Logged In Successful');
             } else {
-                return redirect()->route('home')->with('msg', 'Someting Want Wrong');
+                return redirect()->route('home')->with('msg', 'Someting Want Wrong Login User');
             }
 
-            return redirect()->route('home')->with('msg', "Auth Successful");
         } catch (\Throwable $th) {
             return redirect()->route('home')->with('msg', "authError" . $th->getMessage());
         }
@@ -380,19 +379,19 @@ class GmailController extends Controller
                 $threadId = $originalMessage->getThreadId();
                 $replyText = $request->input('reply');
 
-                // Get the original message content
-                $originalMessagePayload = $originalMessage->getPayload();
-                $parts = $originalMessagePayload->getParts();
-                $body = '';
-                foreach ($parts as $part) {
-                    if ($part->getMimeType() == 'text/html') {
-                        $body = base64_decode(strtr($part->getBody()->getData(), '-_', '+/'));
-                        break;
-                    } elseif ($part->getMimeType() == 'text/plain') {
-                        $body = base64_decode(strtr($part->getBody()->getData(), '-_', '+/'));
-                        break;
-                    }
-                }
+                // // Get the original message content
+                // $originalMessagePayload = $originalMessage->getPayload();
+                // $parts = $originalMessagePayload->getParts();
+                // $body = '';
+                // foreach ($parts as $part) {
+                //     if ($part->getMimeType() == 'text/html') {
+                //         $body = base64_decode(strtr($part->getBody()->getData(), '-_', '+/'));
+                //         break;
+                //     } elseif ($part->getMimeType() == 'text/plain') {
+                //         $body = base64_decode(strtr($part->getBody()->getData(), '-_', '+/'));
+                //         break;
+                //     }
+                // }
 
                 // Create the raw MIME message
                 $replyMessage = new Message();
@@ -403,8 +402,9 @@ class GmailController extends Controller
                 $rawMessage .= "References: " . $this->getHeader($originalMessage, 'Message-ID') . "\r\n";
                 $rawMessage .= "Content-Type: text/html; charset=UTF-8\r\n";
                 $rawMessage .= "Content-Transfer-Encoding: quoted-printable\r\n";
-                $rawMessage .= "\r\n" . $replyText . "<br><br>" . $body;
-
+                // $rawMessage .= "\r\n" . $replyText . "<br><br>" . $body;
+                $rawMessage .= "\r\n" . $replyText;
+// return $rawMessage;
                 $rawMessageEncode = base64_encode($rawMessage);
                 $plainRawMessage = str_replace(['+', '/', '='], ['-', '_', ''], $rawMessageEncode);
 
@@ -415,7 +415,8 @@ class GmailController extends Controller
                 return response()->json(['message' => 'Reply sent successfully']);
             } catch (\Google\Service\Exception $e) {
                 Log::error('Error sending message:', ['error' => $e->getMessage()]);
-                return response()->json(['error' => $e->getMessage()]);
+                // return response()->json(['error' => $e->getMessage()]);
+                return $e->getMessage();
             }
         } else {
             return redirect()->route('home')->with('msg', "Token Expired");
@@ -488,7 +489,8 @@ class GmailController extends Controller
     // CHeck User Token Access ?
     private function checkAccess()
     {
-        $dbgoogleToken = GoogleToken::where('user_id', 3)->first();
+        $userId = Auth::user()->id;
+        $dbgoogleToken = GoogleToken::where('user_id', $userId)->first();
         if (!$dbgoogleToken) {
             return redirect()->route('home')->with('msg', "Token is null");
         }
@@ -501,7 +503,7 @@ class GmailController extends Controller
             Log::info('Access token expired. Refreshing token.');
             $this->client->fetchAccessTokenWithRefreshToken($this->client->getRefreshToken());
             $newToken = json_encode($this->client->getAccessToken());
-            GoogleToken::where('user_id', 1)->update(['access_token' => $newToken]);
+            GoogleToken::where('user_id', $userId)->update(['access_token' => $newToken]);
             $tokenData = $this->client->getAccessToken(); // Update tokenData after refresh
         }
         return true;
