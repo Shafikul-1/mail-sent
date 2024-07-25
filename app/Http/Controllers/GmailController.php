@@ -7,6 +7,8 @@ use App\Models\User;
 use Google\Service\Gmail;
 use Google\Service\Oauth2;
 use App\Models\GoogleToken;
+use DOMDocument;
+use DOMXPath;
 use Illuminate\Http\Request;
 use Google_Service_Exception;
 use Google\Service\Gmail\Message;
@@ -213,19 +215,79 @@ class GmailController extends Controller
                 $messageData = [
                     'id' => $value->id,
                     'threadId' => $value->threadId,
-                    'historyId' => $value->historyId,
-                    'internalDate' => $value->internalDate,
-                    'labelIds' => $value->labelIds,
-                    'raw' => $value->raw,
-                    'sizeEstimate' => $value->sizeEstimate,
-                    'snippet' => $value->snippet,
+                    // 'historyId' => $value->historyId,
+                    // 'internalDate' => $value->internalDate,
+                    // 'labelIds' => $value->labelIds,
+                    // 'raw' => $value->raw,
+                    // 'sizeEstimate' => $value->sizeEstimate,
+                    // 'snippet' => $value->snippet,
                 ];
                 $filterDataArr[$messageData['threadId']][] = $messageData;
             }
 
             $filterAllData = [];
             foreach ($filterDataArr as $singleData) {
+                $lastMessageId = $singleData[0]['id'];
+                $messageDetails = $gmail->users_messages->get('me', $lastMessageId);
+                $headers = $messageDetails->getPayload()->getHeaders();
+
+                // get other information 
+                $reciverEmail = '';
+                $subject = '';
+                $sentDate = '';
+                $messageContent = '';
+                foreach($headers as $otherInfo){
+                    if($otherInfo->name === 'To'){
+                        $reciverEmail = $otherInfo->value;
+                    }
+                    if($otherInfo->name === 'Date'){
+                        $sentDate = $otherInfo->value;
+                    }
+                    if($otherInfo->name === 'Subject'){
+                        $subject = $otherInfo->value;
+                    }
+                }
+
+                // Get body data
+                $parts = $messageDetails->getPayload()->getParts();
+                if(is_null($parts)){
+                    $messageDetails->getPayload()->getBody()->getData();
+                } else{
+                    foreach($parts as $part){
+                        if($part->getmimeType() == 'text/html'){
+                            $messageContent = $part->getBody()->getData();
+                            break;
+                        } 
+                        // else{
+                        //     $messageContent = $part->getBody()->getData();
+                        //     break;
+                        // }
+                    }
+                }
+                $messageContent = base64_decode(strtr($messageContent, '-_', '+/'));
+
+                // Only First block html get 👉 Use the HTML and remove the quoted replies
+                if (!empty($messageContent) && $part->getMimeType() == 'text/html') {
+                    $dom = new DOMDocument();
+                    @$dom->loadHTML($messageContent, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+                
+                    $xpath = new DOMXPath($dom);
+                    $nodesToRemove = [];
+                    foreach ($xpath->query("//div[contains(@class, 'gmail_quote')]") as $node) {
+                        $nodesToRemove[] = $node;
+                    }
+                    foreach ($nodesToRemove as $node) {
+                        $node->parentNode->removeChild($node);
+                    }
+                    $messageContent = $dom->saveHTML();
+                }
+                
+                // array push data
                 $totalData = end($singleData);
+                $totalData['reciverEmail'] = $reciverEmail;
+                $totalData['subject'] = $subject;
+                $totalData['sentDate'] = $sentDate;
+                $totalData['messageContent'] = $messageContent;
                 $totalData['total_message'] = count($singleData);
                 $filterAllData[] = $totalData;
             }

@@ -112,9 +112,13 @@
 
     @foreach ($filterAllData as $sent)
         <div class="border-2 rounded dark:text-white py-4 px-2 my-2">
-            <p>User ID => {{ $sent['id'] }}</p>
-            <p>threadId ID => {{ $sent['threadId'] }}</p>
+            {{-- <p>User ID => {{ $sent['id'] }}</p>
+            <p>threadId ID => {{ $sent['threadId'] }}</p> --}}
+            <p>Messge Subject => {{ $sent['subject'] }}</p>
+            <p>Reciver Email => {{ $sent['reciverEmail'] }}</p>
             <p>Total Messge => {{ $sent['total_message'] }}</p>
+            <p>Messge Sent Date => {{ $sent['sentDate'] }}</p>
+            <p>last message <pre>{!! $sent['messageContent'] !!}</pre></p>
             <a href="{{route('singleSentMessage', $sent['id'])}}" class="text-green-200">Details Message</a>
         </div>
         
