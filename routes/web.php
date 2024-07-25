@@ -39,4 +39,5 @@ Route::get('/gmail/sent', [GmailController::class, 'sentAllMessage'])->name('sen
 Route::get('/gmail/sent/{id}', [GmailController::class, 'singleSentMessage'])->name('singleSentMessage');
 Route::get('/gmail/sent/reply/{messageId}', [GmailController::class, 'sentMessageReply'])->name('sentMessageReply');
 Route::post('/gmail/sent-message/{messageId}', [GmailController::class, 'messageSent'])->name('messageSent');
+Route::post('/gmail/multi-work', [GmailController::class, 'multiWork'])->name('multiWork');
 Route::get('check', [MailfileController::class, 'index'])->name('check');

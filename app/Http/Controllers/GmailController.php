@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use DateTime;
+use DOMXPath;
+use DOMDocument;
 use Google\Client;
 use App\Models\User;
 use Google\Service\Gmail;
 use Google\Service\Oauth2;
 use App\Models\GoogleToken;
-use DOMDocument;
-use DOMXPath;
 use Illuminate\Http\Request;
 use Google_Service_Exception;
 use Google\Service\Gmail\Message;
@@ -241,7 +242,9 @@ class GmailController extends Controller
                         $reciverEmail = $otherInfo->value;
                     }
                     if ($otherInfo->name === 'Date') {
-                        $sentDate = $otherInfo->value;
+                        $getDate = $otherInfo->value;
+                        $date = new DateTime($getDate);
+                        $sentDate = $date->format('l, d F Y \a\t h:i A');
                     }
                     if ($otherInfo->name === 'Subject') {
                         $subject = $otherInfo->value;
@@ -265,6 +268,7 @@ class GmailController extends Controller
                     }
                 }
 
+                // Search String only fast message body data
                 $messageContent = base64_decode(strtr($messageContent, '-_', '+/'));
                 $searchString = "wrote:";
                 if (strpos($messageContent, $searchString) !== false) {
@@ -273,12 +277,13 @@ class GmailController extends Controller
                     $messageContent = strstr($messageContent, $searchOn, true);
                 }
 
+                // big string sort
                 $messageContent = preg_replace('/\s+/', ' ', $messageContent);
                 $stringSort = explode(' ', trim($messageContent));
-                if (str_word_count($messageContent) >= 5) {
+                if (str_word_count($messageContent) >= 7) {
                     // Get the first 5 words
-                    $okString = array_slice($stringSort, 0, 5);
-                    $result = implode(' ', $okString) . '...';
+                    $okString = array_slice($stringSort, 0, 7);
+                    $result = implode(' ', $okString);
                 } else {
                     $result = $messageContent;
                 }
@@ -414,7 +419,7 @@ class GmailController extends Controller
                 $rawMessage .= "References: " . $this->getHeader($originalMessage, 'Message-ID') . "\r\n";
                 $rawMessage .= "Content-Type: text/html; charset=UTF-8\r\n";
                 $rawMessage .= "Content-Transfer-Encoding: quoted-printable\r\n";
-                $rawMessage .= "\r\n" . $replyText;
+                $rawMessage .= "\r\n " . $replyText;
                 // return $rawMessage;
                 $rawMessageEncode = base64_encode($rawMessage);
                 $plainRawMessage = str_replace(['+', '/', '='], ['-', '_', ''], $rawMessageEncode);
@@ -432,6 +437,10 @@ class GmailController extends Controller
         } else {
             return redirect()->route('home')->with('msg', "Token Expired");
         }
+    }
+
+    public function multiWork(Request $request){
+        return $request;
     }
 
     // search Information Headers

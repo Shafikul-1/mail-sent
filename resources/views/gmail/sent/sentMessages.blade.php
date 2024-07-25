@@ -1,126 +1,93 @@
 @extends('header')
 
 @section('othersContent')
-    <h2 class="text-3xl text-center font-bold py-3">My mail inbox Message</h2>
-    <!-- component -->
-<!-- This is an example component -->
-{{-- <div class="max-w-2xl mx-auto">
-
-	<div class="p-4 max-w-md bg-white rounded-lg border shadow-md sm:p-8 dark:bg-gray-800 dark:border-gray-700">
-    <div class="flex justify-between items-center mb-4">
-        <h3 class="text-xl font-bold leading-none text-gray-900 dark:text-white">Latest Customers</h3>
-        <a href="#" class="text-sm font-medium text-blue-600 hover:underline dark:text-blue-500">
-            View all
-        </a>
-   </div>
-   <div class="flow-root">
-        <ul role="list" class="divide-y divide-gray-200 dark:divide-gray-700">
-            <li class="py-3 sm:py-4">
-                <div class="flex items-center space-x-4">
-                    <div class="flex-shrink-0">
-                        <img class="w-8 h-8 rounded-full" src="https://flowbite.com/docs/images/people/profile-picture-1.jpg" alt="Neil image">
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <p class="text-sm font-medium text-gray-900 truncate dark:text-white">
-                            Neil Sims
-                        </p>
-                        <p class="text-sm text-gray-500 truncate dark:text-gray-400">
-                            email@windster.com
-                        </p>
-                    </div>
-                    <div class="inline-flex items-center text-base font-semibold text-gray-900 dark:text-white">
-                        $320
-                    </div>
-                </div>
-            </li>
-            <li class="py-3 sm:py-4">
-                <div class="flex items-center space-x-4">
-                    <div class="flex-shrink-0">
-                        <img class="w-8 h-8 rounded-full" src="https://flowbite.com/docs/images/people/profile-picture-3.jpg" alt="Bonnie image">
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <p class="text-sm font-medium text-gray-900 truncate dark:text-white">
-                            Bonnie Green
-                        </p>
-                        <p class="text-sm text-gray-500 truncate dark:text-gray-400">
-                            email@windster.com
-                        </p>
-                    </div>
-                    <div class="inline-flex items-center text-base font-semibold text-gray-900 dark:text-white">
-                        $3467
-                    </div>
-                </div>
-            </li>
-            <li class="py-3 sm:py-4">
-                <div class="flex items-center space-x-4">
-                    <div class="flex-shrink-0">
-                        <img class="w-8 h-8 rounded-full" src="https://flowbite.com/docs/images/people/profile-picture-2.jpg" alt="Michael image">
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <p class="text-sm font-medium text-gray-900 truncate dark:text-white">
-                            Michael Gough
-                        </p>
-                        <p class="text-sm text-gray-500 truncate dark:text-gray-400">
-                            email@windster.com
-                        </p>
-                    </div>
-                    <div class="inline-flex items-center text-base font-semibold text-gray-900 dark:text-white">
-                        $67
-                    </div>
-                </div>
-            </li>
-            <li class="py-3 sm:py-4">
-                <div class="flex items-center space-x-4">
-                    <div class="flex-shrink-0">
-                        <img class="w-8 h-8 rounded-full" src="https://flowbite.com/docs/images/people/profile-picture-4.jpg" alt="Lana image">
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <p class="text-sm font-medium text-gray-900 truncate dark:text-white">
-                            Lana Byrd
-                        </p>
-                        <p class="text-sm text-gray-500 truncate dark:text-gray-400">
-                            email@windster.com
-                        </p>
-                    </div>
-                    <div class="inline-flex items-center text-base font-semibold text-gray-900 dark:text-white">
-                        $367
-                    </div>
-                </div>
-            </li>
-            <li class="pt-3 pb-0 sm:pt-4">
-                <div class="flex items-center space-x-4">
-                    <div class="flex-shrink-0">
-                        <img class="w-8 h-8 rounded-full" src="https://flowbite.com/docs/images/people/profile-picture-5.jpg" alt="Thomas image">
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <p class="text-sm font-medium text-gray-900 truncate dark:text-white">
-                            Thomes Lean
-                        </p>
-                        <p class="text-sm text-gray-500 truncate dark:text-gray-400">
-                            email@windster.com
-                        </p>
-                    </div>
-                    <div class="inline-flex items-center text-base font-semibold text-gray-900 dark:text-white">
-                        $2367
-                    </div>
-                </div>
-            </li>
-        </ul>
-   </div>
-</div> 
-</div> --}}
-
-    @foreach ($filterAllData as $sent)
-        <div class="border-2 rounded dark:text-white py-4 px-2 my-2">
-            {{-- <p>User ID => {{ $sent['id'] }}</p>
-            <p>threadId ID => {{ $sent['threadId'] }}</p> --}}
-            <p>Messge Subject => {{ $sent['subject'] }}</p>
-            <p>Reciver Email => {{ $sent['reciverEmail'] }}</p>
-            <p>Total Messge => {{ $sent['total_message'] }}</p>
-            <p>Messge Sent Date => {{ $sent['sentDate'] }}</p>
-            <p>last message <pre>{!! $sent['messageContent'] !!}</pre></p>
-            <a href="{{route('singleSentMessage', $sent['id'])}}" class="text-green-200">Details Message</a>
+    <h2 class="text-3xl text-center font-bold py-3">My Sent Message</h2>
+    <form action="{{route('multiWork')}}" method="post">
+        @csrf
+        <div class="flex gap-5 my-6">
+            <input type="submit" name="action" id="reply" value="reply" class="font-bold text-xl border rounded-md shadow-lg shadow-blue-500/50 capitalize bg-blue-500 ml-3 px-4 cursor-pointer py-1">
+            <input type="submit" name="action" id="delete" value="delete" class="font-bold text-xl border rounded-md shadow-lg shadow-blue-500/50 capitalize bg-blue-500 ml-3 px-4 cursor-pointer py-1">
+            <input type="submit" name="action" id="archive" value="archive" class="font-bold text-xl border rounded-md shadow-lg shadow-blue-500/50 capitalize bg-blue-500 ml-3 px-4 cursor-pointer py-1">
         </div>
-        
-    @endforeach
+        <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
+            <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th scope="col" class="p-4">
+                            <div class="flex items-center">
+                                <input id="allSelected" type="checkbox"
+                                    class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:focus:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                                <label for="allSelected" class="sr-only">checkbox</label>
+                            </div>
+                        </th>
+                        <th scope="col" class="px-6 py-3">
+                            Other
+                        </th>
+                        <th scope="col" class="px-6 py-3">
+                            Subject
+                        </th>
+                        <th scope="col" class="px-6 py-3">
+                            Email
+                        </th>
+                        <th scope="col" class="px-6 py-3">
+                            Total Message
+                        </th>
+                        <th scope="col" class="px-6 py-3">
+                            Sent Date
+                        </th>
+                        <th scope="col" class="px-6 py-3">
+                            Message Content
+                        </th>
+                        <th scope="col" class="px-6 py-3">
+                            Action
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{-- <p>threadId ID => {{ $sent['threadId'] }}</p>  --}}
+                    @foreach ($filterAllData as $sent)
+                        <tr
+                            class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                            <td class="w-4 p-4">
+                                <div class="flex items-center">
+                                    <input name="messageId[]" value="{{ $sent['id'] }}" id="messageId" type="checkbox"
+                                        class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:focus:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                                    <label for="messageId" class="sr-only">checkbox</label>
+                                </div>
+                            </td>
+                            <th scope="row"
+                                class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                                Other
+                            </th>
+                            <td class="px-6 py-4">
+                                {{ $sent['subject'] }}
+                            </td>
+                            <td class="px-6 py-4">
+                                {{ $sent['reciverEmail'] }}
+                            </td>
+                            <td class="px-6 py-4">
+                                {{ $sent['total_message'] }}
+                            </td>
+                            <td class="px-6 py-4">
+                                {{ $sent['sentDate'] }}
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class=""
+                                    style=" width: 300px; white-space: nowrap;overflow: hidden; text-overflow: ellipsis;">
+                                    {!! $sent['messageContent'] !!}
+                                </div>
+                            </td>
+                            <td class="flex items-center px-6 py-4">
+                                <a href="{{ route('singleSentMessage', $sent['id']) }}"
+                                    class="font-medium text-blue-600 dark:text-blue-500 hover:underline">View</a>
+                                <a href="#"
+                                    class="font-medium text-red-600 dark:text-red-500 hover:underline ms-3">Remove</a>
+                            </td>
+                        </tr>
+                    @endforeach
+
+                </tbody>
+            </table>
+        </div>
+    </form>
 @endsection
