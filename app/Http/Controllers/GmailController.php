@@ -236,58 +236,75 @@ class GmailController extends Controller
                 $subject = '';
                 $sentDate = '';
                 $messageContent = '';
-                foreach($headers as $otherInfo){
-                    if($otherInfo->name === 'To'){
+                foreach ($headers as $otherInfo) {
+                    if ($otherInfo->name === 'To') {
                         $reciverEmail = $otherInfo->value;
                     }
-                    if($otherInfo->name === 'Date'){
+                    if ($otherInfo->name === 'Date') {
                         $sentDate = $otherInfo->value;
                     }
-                    if($otherInfo->name === 'Subject'){
+                    if ($otherInfo->name === 'Subject') {
                         $subject = $otherInfo->value;
                     }
                 }
 
                 // Get body data
                 $parts = $messageDetails->getPayload()->getParts();
-                if(is_null($parts)){
+                if (is_null($parts)) {
                     $messageDetails->getPayload()->getBody()->getData();
-                } else{
-                    foreach($parts as $part){
-                        if($part->getmimeType() == 'text/html'){
+                } else {
+                    foreach ($parts as $part) {
+                        if ($part->getmimeType() == 'text/plain') {
                             $messageContent = $part->getBody()->getData();
                             break;
-                        } 
+                        }
                         // else{
                         //     $messageContent = $part->getBody()->getData();
                         //     break;
                         // }
                     }
                 }
+
                 $messageContent = base64_decode(strtr($messageContent, '-_', '+/'));
+                $searchString = "wrote:";
+                if (strpos($messageContent, $searchString) !== false) {
+                    $messageContent = strstr($messageContent, $searchString, true);
+                    $searchOn = "On";
+                    $messageContent = strstr($messageContent, $searchOn, true);
+                }
+
+                $messageContent = preg_replace('/\s+/', ' ', $messageContent);
+                $stringSort = explode(' ', trim($messageContent));
+                if (str_word_count($messageContent) >= 5) {
+                    // Get the first 5 words
+                    $okString = array_slice($stringSort, 0, 5);
+                    $result = implode(' ', $okString) . '...';
+                } else {
+                    $result = $messageContent;
+                }
 
                 // Only First block html get 👉 Use the HTML and remove the quoted replies
-                if (!empty($messageContent) && $part->getMimeType() == 'text/html') {
-                    $dom = new DOMDocument();
-                    @$dom->loadHTML($messageContent, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
-                
-                    $xpath = new DOMXPath($dom);
-                    $nodesToRemove = [];
-                    foreach ($xpath->query("//div[contains(@class, 'gmail_quote')]") as $node) {
-                        $nodesToRemove[] = $node;
-                    }
-                    foreach ($nodesToRemove as $node) {
-                        $node->parentNode->removeChild($node);
-                    }
-                    $messageContent = $dom->saveHTML();
-                }
-                
+                // if (!empty($messageContent) && $part->getMimeType() == 'text/html') {
+                //     $dom = new DOMDocument();
+                //     @$dom->loadHTML($messageContent, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+
+                //     $xpath = new DOMXPath($dom);
+                //     $nodesToRemove = [];
+                //     foreach ($xpath->query("//div[contains(@class, 'gmail_quote')]") as $node) {
+                //         $nodesToRemove[] = $node;
+                //     }
+                //     foreach ($nodesToRemove as $node) {
+                //         $node->parentNode->removeChild($node);
+                //     }
+                //     $messageContent = $dom->saveHTML();
+                // }
+
                 // array push data
                 $totalData = end($singleData);
                 $totalData['reciverEmail'] = $reciverEmail;
                 $totalData['subject'] = $subject;
                 $totalData['sentDate'] = $sentDate;
-                $totalData['messageContent'] = $messageContent;
+                $totalData['messageContent'] = $result;
                 $totalData['total_message'] = count($singleData);
                 $filterAllData[] = $totalData;
             }
