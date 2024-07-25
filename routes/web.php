@@ -1,12 +1,13 @@
 <?php
 
-use App\Http\Controllers\ClientMailController;
-use App\Http\Controllers\MailsettingController;
+use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\testController;
 use App\Http\Controllers\UserController;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\GmailController;
 use App\Http\Controllers\MailfileController;
+use App\Http\Controllers\OtherWorkController;
+use App\Http\Controllers\ClientMailController;
+use App\Http\Controllers\MailsettingController;
 
 Route::get('/', function (){
     return view('home');
@@ -39,5 +40,5 @@ Route::get('/gmail/sent', [GmailController::class, 'sentAllMessage'])->name('sen
 Route::get('/gmail/sent/{id}', [GmailController::class, 'singleSentMessage'])->name('singleSentMessage');
 Route::get('/gmail/sent/reply/{messageId}', [GmailController::class, 'sentMessageReply'])->name('sentMessageReply');
 Route::post('/gmail/sent-message/{messageId}', [GmailController::class, 'messageSent'])->name('messageSent');
-Route::post('/gmail/multi-work', [GmailController::class, 'multiWork'])->name('multiWork');
+Route::post('/gmail/multi-work', [OtherWorkController::class, 'multiWork'])->name('multiWork');
 Route::get('check', [MailfileController::class, 'index'])->name('check');

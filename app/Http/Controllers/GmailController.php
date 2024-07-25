@@ -439,10 +439,6 @@ class GmailController extends Controller
         }
     }
 
-    public function multiWork(Request $request){
-        return $request;
-    }
-
     // search Information Headers
     private function getHeader($message, $name)
     {

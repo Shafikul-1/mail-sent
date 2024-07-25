@@ -3,13 +3,11 @@
 namespace App\Http\Controllers;
 
 use DateTime;
-use DateInterval;
-use Carbon\Carbon;
-use App\Models\User;
+use App\Models\OtherWork;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
-
-class MailfileController extends Controller
+class OtherWorkController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -18,32 +16,7 @@ class MailfileController extends Controller
      */
     public function index()
     {
-        // $data = User::where('email', 'shafikul@gmail.com')->count();
-        // $currentTime = Carbon::now();
-        // $mytime = Carbon::now();
-        // return $mytime->toArray();
-        // $currentTime = $mytime->toDateTimeString();
-        $currentTime = new DateTime();
-        $scheduleInterval = 10; // Interval of 10 minutes
-        
-        echo "Current time: " . $currentTime->format("l jS \of F Y h:i:s A") . "<br>";
-        
-        $arr = [
-            'fast' => 'fast',
-            'second' => 'second',
-            'third' => 'third', // Fixed typo: 'thred' to 'third'
-            'six' => 'six',
-            'seven' => 'seven',
-        ];
-        
-        $currentTime = new DateTime();
-        foreach($arr as $key => $id){
-            $scheduleTime = clone $currentTime; // Clone the current time to avoid modifying the original
-            $scheduleTime->add(new DateInterval('PT' . (((int)$key + 1) * $scheduleInterval) . 'M'));
-            echo $scheduleTime->format("l jS \of F Y h:i:s A") . "<br>";
-
-        }
-        // return view('check');
+        //
     }
 
     /**
@@ -55,6 +28,41 @@ class MailfileController extends Controller
     {
         //
     }
+
+    // sent all mail thake all data asche
+    public function multiWork(Request $request)
+    {
+        $userId = Auth::user()->id;
+        $request->validate([
+            'messageId' => 'required|array',
+            'action' => 'required|string',
+        ]);
+
+        // if (!is_null($reqest->sendingTime)) {
+        //     $request->validate([
+        //         'sendingTime' => 'numeric',
+
+        //     ]);
+        // }
+
+        $intervalMinutes = $request->sendingTime;
+        foreach ($request->messageId as $id) {
+            $currentTime = now(); // or use \Carbon\Carbon::now()
+            $scheduleTime = $currentTime->addMinutes($intervalMinutes)->format('Y-m-d H:i:s');
+            $workData = OtherWork::create([
+                'action' => $request->action,
+                'messageId' => $id,
+                'user_id' => $userId,
+                'reply' => $request->reply,
+                'sendingTime' => $scheduleTime,
+            ]);
+            $intervalMinutes += $request->sendingTime;
+        }
+        return redirect()->back()->with('msg', "Success Other Worked");
+    }
+
+
+
 
     /**
      * Store a newly created resource in storage.

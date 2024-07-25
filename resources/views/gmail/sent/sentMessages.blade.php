@@ -2,13 +2,47 @@
 
 @section('othersContent')
     <h2 class="text-3xl text-center font-bold py-3">My Sent Message</h2>
-    <form action="{{route('multiWork')}}" method="post">
+    <form action="{{ route('multiWork') }}" method="post">
         @csrf
         <div class="flex gap-5 my-6">
-            <input type="submit" name="action" id="reply" value="reply" class="font-bold text-xl border rounded-md shadow-lg shadow-blue-500/50 capitalize bg-blue-500 ml-3 px-4 cursor-pointer py-1">
-            <input type="submit" name="action" id="delete" value="delete" class="font-bold text-xl border rounded-md shadow-lg shadow-blue-500/50 capitalize bg-blue-500 ml-3 px-4 cursor-pointer py-1">
-            <input type="submit" name="action" id="archive" value="archive" class="font-bold text-xl border rounded-md shadow-lg shadow-blue-500/50 capitalize bg-blue-500 ml-3 px-4 cursor-pointer py-1">
+
+            {{-- Dailog Box reply --}}
+            <div
+                class="hidden replyFormShow absolute top-5 left-[35%] z-40 rounded-md shadow-lg shadow-blue-500/50 p-2 bg-blue-500 translate-y-[20rem] transition-all duration-1000 ease-in ">
+                <div class="mx-auto max-w-screen-sm px-4 relative">
+                    {{-- Dilog Box close  --}}
+                    <p onclick="replyFunction()"
+                        class="absolute top-0 right-1 cursor-pointer text-white bg-red-800 capitalize px-3 py-2 rounded-md ">
+                        close</p>
+                    <h1 class="mt-6 text-xl font-bold sm:mb-6 sm:text-3xl">Write your Reply</h1>
+                    <div class="w-full space-y-3 text-gray-700">
+                        <div class="">
+                            <textarea name="reply" id="" placeholder="Write your comment here" cols="50" rows="6"
+                                class="h-40 w-full min-w-full max-w-full overflow-auto whitespace-pre-wrap rounded-md border bg-white p-5 text-sm font-normal normal-case text-gray-600 opacity-100 outline-none focus:text-gray-600 focus:opacity-100 focus:ring"></textarea>
+                            <div class="flex flex-col">
+                                <label for="sendingTime" class="font-bold dark:text-white my-2">Insert Sending time Min
+                                    ...</label>
+                                <input type="number" name="sendingTime" id="sendingTime" class="rounded-md">
+                            </div>
+                        </div>
+                        <div class="float-right">
+                            <input type="submit" name="action" id="reply" value="reply"
+                                class="capitalize relative inline-flex h-10 w-auto max-w-full cursor-pointer items-center justify-center overflow-hidden whitespace-pre rounded-md bg-blue-700 px-5 py-2 text-center text-sm font-medium normal-case text-white opacity-100 outline-none focus:ring" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Dilog Box Opem  --}}
+            <button onclick="replyFunction()" type="button"
+                class="font-bold text-xl border rounded-md shadow-lg shadow-indigo-500/50 capitalize bg-indigo-500 ml-3 px-4 cursor-pointer py-1">reply</button>
+            <input type="submit" name="action" id="delete" value="delete"
+                class="font-bold text-xl border rounded-md shadow-lg shadow-blue-500/50 capitalize bg-blue-500 ml-3 px-4 cursor-pointer py-1">
+            <input type="submit" name="action" id="archive" value="archive"
+                class="font-bold text-xl border rounded-md shadow-lg shadow-blue-500/50 capitalize bg-blue-500 ml-3 px-4 cursor-pointer py-1">
         </div>
+
+        {{-- Table --}}
         <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
             <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
                 <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
@@ -72,8 +106,7 @@
                                 {{ $sent['sentDate'] }}
                             </td>
                             <td class="px-6 py-4">
-                                <div class=""
-                                    style=" width: 300px; white-space: nowrap;overflow: hidden; text-overflow: ellipsis;">
+                                <div class="w-[300px] whitespace-nowrap overflow-hidden text-ellipsis">
                                     {!! $sent['messageContent'] !!}
                                 </div>
                             </td>
@@ -90,4 +123,32 @@
             </table>
         </div>
     </form>
+    
+
+    @if (session('msg'))
+        <div class="bg-red-50 border-s-4 border-red-500 p-4" role="alert">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <!-- Icon -->
+              <span class="inline-flex justify-center items-center size-8 rounded-full border-4 border-red-100 bg-red-200 text-red-800">
+                <svg class="flex-shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M18 6 6 18"></path>
+                  <path d="m6 6 12 12"></path>
+                </svg>
+              </span>
+              <!-- End Icon -->
+            </div>
+            <div class="ms-3">
+              <h3 class="text-gray-800 font-semibold">
+                Error!
+              </h3>
+              <p class="text-sm text-gray-700">
+                {{session('msg')}}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    @endif
+    
 @endsection
