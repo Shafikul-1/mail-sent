@@ -110,10 +110,11 @@
 </div> 
 </div> --}}
 
-    @foreach ($sentMessage as $sent)
+    @foreach ($filterAllData as $sent)
         <div class="border-2 rounded dark:text-white py-4 px-2 my-2">
             <p>User ID => {{ $sent['id'] }}</p>
             <p>threadId ID => {{ $sent['threadId'] }}</p>
+            <p>Total Messge => {{ $sent['total_message'] }}</p>
             <a href="{{route('singleSentMessage', $sent['id'])}}" class="text-green-200">Details Message</a>
         </div>
         

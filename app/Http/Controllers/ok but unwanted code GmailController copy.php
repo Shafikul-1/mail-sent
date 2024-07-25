@@ -165,6 +165,16 @@ class GmailController extends Controller
         $gmail = new Gmail($this->client);
         $inbox = $gmail->users_messages->listUsersMessages('me');
 
+        // $data = [];
+        // foreach ($inbox->getMessages() as $value) {
+        //     $messageId = $value->getId();
+        //     $messge = $gmail->users_messages->get('me', $messageId, ['format'=> 'full']);
+        //     // $headers = $messge->getPayload()->getHeaders();
+        //     $snippet = $messge->getSnippet();
+        //     $data['userId'] = $messageId;
+        //     $data['snippet'] = $snippet;
+        //     // return $snippet;
+        // }
         return view('gmail.inbox.inboxMessages', ['inboxMessage' => $inbox->getMessages()]);
         // return $data;
     }
@@ -197,7 +207,7 @@ class GmailController extends Controller
     public function sentAllMessage()
     {
         try {
-            $dbgoogleToken = GoogleToken::where('user_id', Auth::user()->id)->get();
+            $dbgoogleToken = GoogleToken::where('user_id', 1)->get();
             if (!$dbgoogleToken[0]) {
                 return redirect()->route('home')->with('msg', "Token Is null");
             }
@@ -207,31 +217,8 @@ class GmailController extends Controller
             $gmail = new Gmail($this->client);
             $sentEmailData = $gmail->users_messages->listUsersMessages('me', ['q' => 'is:sent']);
             $sentMessage = $sentEmailData->getMessages();
-
-            $filterDataArr = [];
-            foreach ($sentMessage as $value) {
-                $messageData = [
-                    'id' => $value->id,
-                    'threadId' => $value->threadId,
-                    'historyId' => $value->historyId,
-                    'internalDate' => $value->internalDate,
-                    'labelIds' => $value->labelIds,
-                    'raw' => $value->raw,
-                    'sizeEstimate' => $value->sizeEstimate,
-                    'snippet' => $value->snippet,
-                ];
-                $filterDataArr[$messageData['threadId']][] = $messageData;
-            }
-
-            $filterAllData = [];
-            foreach ($filterDataArr as $singleData) {
-                $totalData = end($singleData);
-                $totalData['total_message'] = count($singleData);
-                $filterAllData[] = $totalData;
-            }
-
-            return view('gmail.sent.sentMessages', compact('filterAllData'));
-            // return $filterAllData;
+            return view('gmail.sent.sentMessages', compact('sentMessage'));
+            // return $allsentMessage;
 
         } catch (\Throwable $th) {
             return $th->getMessage();
@@ -314,6 +301,71 @@ class GmailController extends Controller
         return view('gmail.sent.sentMesssageReply', compact('messageId'));
     }
 
+    // sent message reply
+    // public function messageSent(Request $request, $messageId){
+    //     $dbgoogleToken = GoogleToken::where('user_id', 1)->get();
+    //     if (!$dbgoogleToken[0]) {
+    //         return redirect()->route('home')->with('msg', "Token Is null");
+    //     }
+    //     $this->client->setAccessToken(json_decode($dbgoogleToken[0]->access_token, true));
+
+    //     // Check if token has the required scopes
+    //     if ($this->client->isAccessTokenExpired()) {
+    //         $this->client->fetchAccessTokenWithRefreshToken($this->client->getRefreshToken());
+    //         $newToken =  json_encode($this->client->getAccessToken());
+    //         GoogleToken::where('user_id', 1)->update([
+    //             'access_token' => $newToken,
+    //         ]);
+    //     }
+
+    //     if (!$this->client->isAccessTokenExpired()) {
+    //         $requiredScopes = ['https://www.googleapis.com/auth/gmail.send'];
+    //         $currentScopes = $this->client->getScopes();
+
+    //         $missingScopes = array_diff($requiredScopes, $currentScopes);
+
+    //         if (!empty($missingScopes)) {
+    //             // If token doesn't have the required scope, force reauthorization
+    //             $authUrl = $this->client->createAuthUrl();
+    //             return redirect($authUrl);
+    //         }
+    //     }
+
+
+    //     // Create Gmail service
+    //     $gmail = new Gmail($this->client);
+    //     try {
+    //         $originalMessage = $gmail->users_messages->get('me', $messageId);
+    //         $threadId = $originalMessage->getThreadId();
+    //         // echo $threadId . "<br>";
+    //         // Prepare Replay Message
+    //         $replyText = $request->input('reply');
+    //         // echo $replyText . "<br>";
+
+    //         $replyMessage = new Message();
+
+    //         $rawMessage = "To: " . $this->getHeader($originalMessage, 'From') . "\r\n";
+    //         $rawMessage .= "Subject: Re: " . $this->getHeader($originalMessage, 'Subject') . "\r\n";
+    //         $rawMessage .= "In-Reply-To: " . $this->getHeader($originalMessage, 'Message-ID') . "\r\n";
+    //         $rawMessage .= "References: " . $this->getHeader($originalMessage, 'Message-ID') . "\r\n";
+    //         $rawMessage .= "\r\n" . $replyText;
+
+    //         $rawMessageEncode = base64_encode($rawMessage);
+    //         $plainRawMessage = str_replace(['+', '/', '='], ['-', '_', ''], $rawMessageEncode);
+
+    //         // echo $plainRawMessage;
+    //         $replyMessage->setRaw($plainRawMessage);
+    //         $replyMessage->setThreadId($threadId);
+
+    //         // Sent The reply
+    //         $sentMessage = $gmail->users_messages->send('me', $replyMessage);
+    //         return response()->json(['message' => 'Reply sent successfully']);
+    //     } catch (\Google_Service_Exception $th) {
+    //         return $th->getMessage();
+    //         // return response()->json(['error' => $th->getMessage()]);
+    //     }
+    // }
+
     // Send message reply
     public function messageSent(Request $request, $messageId)
     {
@@ -326,6 +378,20 @@ class GmailController extends Controller
                 $threadId = $originalMessage->getThreadId();
                 $replyText = $request->input('reply');
 
+                // // Get the original message content
+                // $originalMessagePayload = $originalMessage->getPayload();
+                // $parts = $originalMessagePayload->getParts();
+                // $body = '';
+                // foreach ($parts as $part) {
+                //     if ($part->getMimeType() == 'text/html') {
+                //         $body = base64_decode(strtr($part->getBody()->getData(), '-_', '+/'));
+                //         break;
+                //     } elseif ($part->getMimeType() == 'text/plain') {
+                //         $body = base64_decode(strtr($part->getBody()->getData(), '-_', '+/'));
+                //         break;
+                //     }
+                // }
+
                 // Create the raw MIME message
                 $replyMessage = new Message();
                 $rawMessage = "From: " . $this->getHeader($originalMessage, 'From') . "\r\n";
@@ -335,6 +401,7 @@ class GmailController extends Controller
                 $rawMessage .= "References: " . $this->getHeader($originalMessage, 'Message-ID') . "\r\n";
                 $rawMessage .= "Content-Type: text/html; charset=UTF-8\r\n";
                 $rawMessage .= "Content-Transfer-Encoding: quoted-printable\r\n";
+                // $rawMessage .= "\r\n" . $replyText . "<br><br>" . $body;
                 $rawMessage .= "\r\n" . $replyText;
                 // return $rawMessage;
                 $rawMessageEncode = base64_encode($rawMessage);
@@ -354,6 +421,58 @@ class GmailController extends Controller
             return redirect()->route('home')->with('msg', "Token Expired");
         }
     }
+
+    // public function messageSent(Request $request, $messageId)
+    // {
+    //     $checking = $this->checkAccess();
+    //     if ($checking) {
+    //         $googleService = new Gmail($this->client);
+    //         try {
+
+    //             // receive the message body and extract it's headers
+    //             $message = $googleService->users_messages->get('me', $messageId);
+    //             $messageDetails = $message->getPayload();
+    //             $messageHeaders = $messageDetails->getHeaders();
+
+    //             // get the subject from the original message header
+    //             $subject = 'Re:'.$this->getHeader($messageHeaders, 'Subject');
+
+    //             // if you use the from header, this may contain the complete email address like John Doe <john.doe@foobar.com> - phpMailer will not accept that, the tricky thing is: you will not notice it, because it will be left blank and the Gmail API will return an "Recipient address required"
+    //             preg_match('/.*<(.*@.*)>/', $this->getHeader($messageHeaders, 'From'),$to);
+
+    //             // now use the PHPMailer to build a valid email-body
+    //             $mail = new PHPMailer();
+    //             $mail->CharSet = 'UTF-8';
+    //             $mail->From = $from;
+    //             $mail->FromName = $fromName;
+    //             $mail->addAddress($to[1]);
+    //             $mail->Subject = $subject;
+    //             $mail->Body = $body;
+    //             // preSend will build and verify the email
+    //             $mail->preSend();
+
+    //             $mime = $mail->getSentMIMEMessage();
+    //             // the base64-url-encode is important, otherwise you'll receive an "Invalid value for ByteString" error
+    //             $raw = base64url_encode($mime);
+
+    //             // now use the Gmail-Message object to actually 
+    //             // for me it is not clear, why we cannot use Class Google_Service_Gmail for this
+    //             $message = new Google_Service_Gmail_Message();
+
+    //             $message->setRaw($raw);
+
+    //             $message->setThreadId($emailId);
+
+    //             // and finally provide encoded message and user to our global google service object - this will send the email
+    //             $response = $googleService->users_messages->send($user, $message);
+
+    //         } catch (Google_Service_Exception $e) {
+    //         return $e;
+    //         }
+    //     } else {
+    //         return "not wokr check accesss";
+    //     }
+    // }
 
     // search Information Headers
     private function getHeader($message, $name)
