@@ -49,7 +49,7 @@ class EmailReplyJob implements ShouldQueue
         $this->client->addScope('https://www.googleapis.com/auth/gmail.send');
         $this->client->setAccessType('offline');
         $this->client->setPrompt('consent');
-        
+
         foreach($this->datas as $data){
             if($data->action === 'reply'){
                 $replysent = $this->messageSentSchedule($data->reply, $data->messageId, $data->user_id);
@@ -61,8 +61,7 @@ class EmailReplyJob implements ShouldQueue
             }
         }
     }
-
-    
+     
     public function messageSentSchedule($replyText, $messageId, $userId)
     {
         // $returnData = $replyText . '  ---  ' . $messageId;
