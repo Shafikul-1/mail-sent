@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\EmailReplyJob;
 use DateTime;
 use App\Models\OtherWork;
 use Illuminate\Http\Request;
@@ -16,7 +17,17 @@ class OtherWorkController extends Controller
      */
     public function index()
     {
-        //
+        $currentDate = now();
+        $nextTime = $currentDate->addMinutes(10)->format('Y-m-d H:i:s');
+        $datas = OtherWork::where('sendingTime' , '<=', $nextTime)->get(['id','action', 'messageId', 'sendingTime', 'user_id', 'reply']);
+        // return $datas;
+       
+        try{
+            EmailReplyJob::dispatch($datas);
+            echo "success --- ";
+        } catch(\Throwable $error){
+            echo $error->getMessage();
+        }
     }
 
     /**
@@ -60,9 +71,6 @@ class OtherWorkController extends Controller
         }
         return redirect()->back()->with('msg', "Success Other Worked");
     }
-
-
-
 
     /**
      * Store a newly created resource in storage.

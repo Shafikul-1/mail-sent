@@ -439,6 +439,48 @@ class GmailController extends Controller
         }
     }
 
+    // Send message reply
+    public function messageSentSchedule($replyText, $messageId)
+    {
+        $returnData = $replyText . '  ---  ' . $messageId;
+        return $returnData;
+        $checking = $this->checkAccess();
+        if ($checking) {
+            // Create Gmail service
+            $gmail = new Gmail($this->client);
+            try {
+                $originalMessage = $gmail->users_messages->get('me', $messageId);
+                $threadId = $originalMessage->getThreadId();
+
+                // Create the raw MIME message
+                $replyMessage = new Message();
+                $rawMessage = "From: " . $this->getHeader($originalMessage, 'From') . "\r\n";
+                $rawMessage .= "To: " . $this->getHeader($originalMessage, 'To') . "\r\n";
+                $rawMessage .= "Subject: Re: " . $this->getHeader($originalMessage, 'Subject') . "\r\n";
+                $rawMessage .= "In-Reply-To: " . $this->getHeader($originalMessage, 'Message-ID') . "\r\n";
+                $rawMessage .= "References: " . $this->getHeader($originalMessage, 'Message-ID') . "\r\n";
+                $rawMessage .= "Content-Type: text/html; charset=UTF-8\r\n";
+                $rawMessage .= "Content-Transfer-Encoding: quoted-printable\r\n";
+                $rawMessage .= "\r\n " . $replyText;
+                // return $rawMessage;
+                $rawMessageEncode = base64_encode($rawMessage);
+                $plainRawMessage = str_replace(['+', '/', '='], ['-', '_', ''], $rawMessageEncode);
+
+                $replyMessage->setRaw($plainRawMessage);
+                $replyMessage->setThreadId($threadId);
+                $sentMessage = $gmail->users_messages->send('me', $replyMessage);
+
+                return response()->json(['message' => 'Reply sent successfully']);
+            } catch (\Google\Service\Exception $e) {
+                Log::error('Error sending message:', ['error' => $e->getMessage()]);
+                // return response()->json(['error' => $e->getMessage()]);
+                return $e->getMessage();
+            }
+        } else {
+            return redirect()->route('home')->with('msg', "Token Expired");
+        }
+    }
+
     // search Information Headers
     private function getHeader($message, $name)
     {
