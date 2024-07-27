@@ -64,9 +64,6 @@ class EmailReplyJob implements ShouldQueue
      
     public function messageSentSchedule($replyText, $messageId, $userId)
     {
-        // $returnData = $replyText . '  ---  ' . $messageId;
-        // return $returnData;
-
         $checking = $this->checkAccess($userId);
         if ($checking) {
             // Create Gmail service

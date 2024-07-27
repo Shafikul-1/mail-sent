@@ -197,39 +197,21 @@ class GmailController extends Controller
     }
 
     // Sent Message All
-    public function sentAllMessage()
+    public function sentAllMessage($pageId = null)
     {
+        // Other function work
+        $getData = $this->sentMailAllData($pageId);
+        if ($getData == false) {
+            return false;
+        }
+        $gmail = new Gmail($this->client);
+        $uniqueMessageId = $getData['uniqueMessageId'];
+
+        // This fucntion work
         try {
-            $dbgoogleToken = GoogleToken::where('user_id', Auth::user()->id)->get();
-            if (!$dbgoogleToken[0]) {
-                return redirect()->route('home')->with('msg', "Token Is null");
-            }
-            $this->client->setAccessToken(json_decode($dbgoogleToken[0]->access_token, true));
-
-            // Create Gmail service
-            $gmail = new Gmail($this->client);
-            $sentEmailData = $gmail->users_messages->listUsersMessages('me', ['q' => 'is:sent']);
-            $sentMessage = $sentEmailData->getMessages();
-
-            $filterDataArr = [];
-            foreach ($sentMessage as $value) {
-                $messageData = [
-                    'id' => $value->id,
-                    'threadId' => $value->threadId,
-                    // 'historyId' => $value->historyId,
-                    // 'internalDate' => $value->internalDate,
-                    // 'labelIds' => $value->labelIds,
-                    // 'raw' => $value->raw,
-                    // 'sizeEstimate' => $value->sizeEstimate,
-                    // 'snippet' => $value->snippet,
-                ];
-                $filterDataArr[$messageData['threadId']][] = $messageData;
-            }
-
             $filterAllData = [];
-            foreach ($filterDataArr as $singleData) {
-                $lastMessageId = $singleData[0]['id'];
-                $messageDetails = $gmail->users_messages->get('me', $lastMessageId);
+            foreach ($uniqueMessageId as $messageId) { 
+                $messageDetails = $gmail->users_messages->get('me', $messageId);
                 $headers = $messageDetails->getPayload()->getHeaders();
 
                 // get other information 
@@ -257,7 +239,7 @@ class GmailController extends Controller
                     $messageDetails->getPayload()->getBody()->getData();
                 } else {
                     foreach ($parts as $part) {
-                        if ($part->getmimeType() == 'text/plain') {
+                        if ($part->getmimeType() == 'text/plain' || $part->getmimeType() == 'text/html') {
                             $messageContent = $part->getBody()->getData();
                             break;
                         }
@@ -267,7 +249,7 @@ class GmailController extends Controller
                         // }
                     }
                 }
-
+                
                 // Search String only fast message body data
                 $messageContent = base64_decode(strtr($messageContent, '-_', '+/'));
                 $searchString = "wrote:";
@@ -276,7 +258,7 @@ class GmailController extends Controller
                     $searchOn = "On";
                     $messageContent = strstr($messageContent, $searchOn, true);
                 }
-
+                
                 // big string sort
                 $messageContent = preg_replace('/\s+/', ' ', $messageContent);
                 $stringSort = explode(' ', trim($messageContent));
@@ -288,38 +270,76 @@ class GmailController extends Controller
                     $result = $messageContent;
                 }
 
-                // Only First block html get 👉 Use the HTML and remove the quoted replies
-                // if (!empty($messageContent) && $part->getMimeType() == 'text/html') {
-                //     $dom = new DOMDocument();
-                //     @$dom->loadHTML($messageContent, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
-
-                //     $xpath = new DOMXPath($dom);
-                //     $nodesToRemove = [];
-                //     foreach ($xpath->query("//div[contains(@class, 'gmail_quote')]") as $node) {
-                //         $nodesToRemove[] = $node;
-                //     }
-                //     foreach ($nodesToRemove as $node) {
-                //         $node->parentNode->removeChild($node);
-                //     }
-                //     $messageContent = $dom->saveHTML();
-                // }
-
                 // array push data
-                $totalData = end($singleData);
                 $totalData['reciverEmail'] = $reciverEmail;
                 $totalData['subject'] = $subject;
                 $totalData['sentDate'] = $sentDate;
                 $totalData['messageContent'] = $result;
-                $totalData['total_message'] = count($singleData);
                 $filterAllData[] = $totalData;
             }
 
-            return view('gmail.sent.sentMessages', compact('filterAllData'));
-            // return $filterAllData;
+            // return view('gmail.sent.sentMessages', compact('filterAllData'));
+            return [
+                'filterAllData' => $filterAllData,
+                'pageTokens' => $getData['pageTokens'],
+            ];
 
         } catch (\Throwable $th) {
             return $th->getMessage();
         }
+    }
+
+    // Sent message All page id fetch
+    private function sentMailAllData($pageId)
+    {
+        if ($this->checkGmailAccess()) {
+            $gmail = new Gmail($this->client);
+            $pageTokens = [];
+            $pageToken = null;
+
+            do {
+                $optParams = ['q' => 'is:sent'];
+                if ($pageToken) {
+                    $optParams['pageToken'] = $pageToken;
+                }
+
+                $sentEmailData = $gmail->users_messages->listUsersMessages('me', $optParams);
+                $messages = $sentEmailData->getMessages();
+
+                // Store the current page token
+                if ($pageToken) {
+                    $pageTokens[] = $pageToken;
+                }
+
+                // Get the next page token
+                $pageToken = $sentEmailData->getNextPageToken();
+            } while ($pageToken);
+
+            // Store the final page token if there is one
+            if ($pageToken) {
+                $pageTokens[] = $pageToken;
+            }
+
+            $sentMessageIds = $gmail->users_messages->listUsersMessages('me', [
+                'q' => 'is:sent',
+                'pageToken' => $pageId ?: null
+            ]);
+
+            $sentMessage = $sentMessageIds->getMessages();
+            $uniqueMessageId = [];
+            foreach ($sentMessage as $messageThredId) {
+                if (!in_array($messageThredId->id, $uniqueMessageId)) {
+                    $uniqueMessageId[] = $messageThredId->id;
+                }
+            }
+
+            return [
+                'uniqueMessageId' => $uniqueMessageId,
+                'pageTokens' => $pageTokens,
+            ];
+        } else {
+            return false;
+        };
     }
 
     // Sent Single message View
@@ -439,48 +459,17 @@ class GmailController extends Controller
         }
     }
 
-    // // Send message reply
-    // public function messageSentSchedule($replyText, $messageId)
-    // {
-    //     $returnData = $replyText . '  ---  ' . $messageId;
-    //     return $returnData;
-    //     $checking = $this->checkAccess();
-    //     if ($checking) {
-    //         // Create Gmail service
-    //         $gmail = new Gmail($this->client);
-    //         try {
-    //             $originalMessage = $gmail->users_messages->get('me', $messageId);
-    //             $threadId = $originalMessage->getThreadId();
-
-    //             // Create the raw MIME message
-    //             $replyMessage = new Message();
-    //             $rawMessage = "From: " . $this->getHeader($originalMessage, 'From') . "\r\n";
-    //             $rawMessage .= "To: " . $this->getHeader($originalMessage, 'To') . "\r\n";
-    //             $rawMessage .= "Subject: Re: " . $this->getHeader($originalMessage, 'Subject') . "\r\n";
-    //             $rawMessage .= "In-Reply-To: " . $this->getHeader($originalMessage, 'Message-ID') . "\r\n";
-    //             $rawMessage .= "References: " . $this->getHeader($originalMessage, 'Message-ID') . "\r\n";
-    //             $rawMessage .= "Content-Type: text/html; charset=UTF-8\r\n";
-    //             $rawMessage .= "Content-Transfer-Encoding: quoted-printable\r\n";
-    //             $rawMessage .= "\r\n " . $replyText;
-    //             // return $rawMessage;
-    //             $rawMessageEncode = base64_encode($rawMessage);
-    //             $plainRawMessage = str_replace(['+', '/', '='], ['-', '_', ''], $rawMessageEncode);
-
-    //             $replyMessage->setRaw($plainRawMessage);
-    //             $replyMessage->setThreadId($threadId);
-    //             $sentMessage = $gmail->users_messages->send('me', $replyMessage);
-
-    //             return response()->json(['message' => 'Reply sent successfully']);
-    //         } catch (\Google\Service\Exception $e) {
-    //             Log::error('Error sending message:', ['error' => $e->getMessage()]);
-    //             // return response()->json(['error' => $e->getMessage()]);
-    //             return $e->getMessage();
-    //         }
-    //     } else {
-    //         return redirect()->route('home')->with('msg', "Token Expired");
-    //     }
-    // }
-
+    // Check Gmail access
+    private function checkGmailAccess()
+    {
+        $dbgoogleToken = GoogleToken::where('user_id', Auth::user()->id)->get();
+        if (!$dbgoogleToken[0]) {
+            return redirect()->route('home')->with('msg', "Token Is null");
+        }
+        $this->client->setAccessToken(json_decode($dbgoogleToken[0]->access_token, true));
+        // Create Gmail service
+        return true;
+    }
     // search Information Headers
     private function getHeader($message, $name)
     {
