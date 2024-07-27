@@ -29,8 +29,6 @@ class EmailReplyJob implements ShouldQueue
     public function __construct($data)
     {
         $this->datas = $data;
-
-       
     }
 
     /**
@@ -50,18 +48,21 @@ class EmailReplyJob implements ShouldQueue
         $this->client->setAccessType('offline');
         $this->client->setPrompt('consent');
 
-        foreach($this->datas as $data){
-            if($data->action === 'reply'){
-                $replysent = $this->messageSentSchedule($data->reply, $data->messageId, $data->user_id);
-                if($replysent){
-                    echo "successful reply -- ";
-                } else{
-                    echo "failed";
+        foreach ($this->datas as $data) {
+            if ($data->action === 'reply') {
+                $currentTime = now()->format('Y-m-d H:i:s');
+                if ($data->sendingTime == $currentTime || $data->sendingTime <= $currentTime) {
+                    $replysent = $this->messageSentSchedule($data->reply, $data->messageId, $data->user_id);
+                    if ($replysent) {
+                        echo "successful reply -- ";
+                    } else {
+                        echo "failed";
+                    }
                 }
             }
         }
     }
-     
+
     public function messageSentSchedule($replyText, $messageId, $userId)
     {
         $checking = $this->checkAccess($userId);
@@ -90,12 +91,12 @@ class EmailReplyJob implements ShouldQueue
                 $replyMessage->setThreadId($threadId);
                 $sentMessage = $gmail->users_messages->send('me', $replyMessage);
 
-                return response()->json(['message' => 'Reply sent successfully']);
+                return true;
             } catch (\Google\Service\Exception $e) {
-                return $e->getMessage();
+                return false;
             }
         } else {
-            return redirect()->route('home')->with('msg', "Token Expired");
+            return false;
         }
     }
 
@@ -108,13 +109,13 @@ class EmailReplyJob implements ShouldQueue
         }
         return null;
     }
-    
+
     // CHeck User Token Access ?
     private function checkAccess($userId)
     {
         $dbgoogleToken = GoogleToken::where('user_id', $userId)->first();
         if (!$dbgoogleToken) {
-            return redirect()->route('home')->with('msg', "Token is null");
+            return false;
         }
 
         $tokenData = json_decode($dbgoogleToken->access_token, true);
@@ -129,5 +130,4 @@ class EmailReplyJob implements ShouldQueue
         }
         return true;
     }
-    
 }

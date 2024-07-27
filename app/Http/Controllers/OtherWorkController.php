@@ -17,13 +17,16 @@ class OtherWorkController extends Controller
      */
     public function index()
     {
-        $currentDate = now();
-        $nextTime = $currentDate->addMinutes(10)->format('Y-m-d H:i:s');
-        $datas = OtherWork::where('sendingTime' , '<=', $nextTime)->get(['id','action', 'messageId', 'sendingTime', 'user_id', 'reply']);
-        // return $datas;
+        // $currentDate = now();
+        // $nextTime = $currentDate->addMinutes(10)->format('Y-m-d H:i:s');
+        // $datas = OtherWork::where('sendingTime' , '<=', $nextTime)->get(['id','action', 'messageId', 'sendingTime', 'user_id', 'reply']);
+       
+        $currentAllData = OtherWork::all(['id','action', 'messageId', 'sendingTime', 'user_id', 'reply']);
+
+        // return $currentAllData;
        
         try{
-            EmailReplyJob::dispatch($datas);
+            EmailReplyJob::dispatch($currentAllData);
             echo "success --- ";
         } catch(\Throwable $error){
             echo $error->getMessage();
