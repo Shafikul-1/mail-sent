@@ -1,5 +1,12 @@
 @extends('header')
 
+<script>
+    function allPageShow(){
+        const AllPage = document.querySelector('.AllPage');
+        AllPage.classList.toggle('hidden');
+    }
+</script>
+
 @section('othersContent')
     <h2 class="text-3xl text-center font-bold py-3">My Sent Message</h2>
     <form action="{{ route('multiWork') }}" method="post">
@@ -42,6 +49,25 @@
                 class="font-bold text-xl border rounded-md shadow-lg shadow-blue-500/50 capitalize bg-blue-500 ml-3 px-4 cursor-pointer py-1">
         </div>
 
+        {{-- All Page Show --}}
+        @php
+            $paramId = request()->route('pageId');
+        @endphp
+        <div class="text-end relative">
+            <button onclick="allPageShow()" class=" mr-[1.3rem] bg-green-600 px-5 py-2 rounded-md font-bold text-md" type="button">Page</button>
+            <div class=" AllPage hidden z-50 absolute top-[-3rem] right-[7rem] bg-blue-500 shadow-lg shadow-blue-500/50 p-2 rounded-md ">
+                <div class="flex flex-col w-[7rem] h-[13rem] overflow-x-auto">
+                    <a href="{{ route('sentAllMessage') }}"
+                        class="{{($paramId == '') ? 'bg-cyan-500 shadow-lg shadow-cyan-500/50' : 'bg-indigo-500 shadow-lg shadow-indigo-500/50'}} font-bold text-md px-4 capitalize my-2 py-1 rounded-md">Page 0</a>
+                    @foreach ($pageTokens as $pageNumber => $pageToken)
+                        <a href="{{ route('sentAllMessage', $pageToken) }}"
+                            class="{{($paramId == $pageToken) ? 'bg-cyan-500 shadow-lg shadow-cyan-500/50' : 'bg-indigo-500 shadow-lg shadow-indigo-500/50'}} font-bold text-md px-4 capitalize my-2 py-1 rounded-md">page
+                            {{ $pageNumber + 1 }} </a>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+
         {{-- Table --}}
         <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
             <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
@@ -79,7 +105,7 @@
                 </thead>
                 <tbody>
                     {{-- <p>threadId ID => {{ $sent['threadId'] }}</p>  --}}
-                    @foreach ($filterAllData as $sent)
+                    @foreach ($filterAllData as $key => $sent)
                         <tr
                             class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
                             <td class="w-4 p-4">
@@ -91,7 +117,7 @@
                             </td>
                             <th scope="row"
                                 class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                                Other
+                                {{ $key + 1 }}
                             </th>
                             <td class="px-6 py-4">
                                 {{ $sent['subject'] }}
@@ -100,14 +126,14 @@
                                 {{ $sent['reciverEmail'] }}
                             </td>
                             <td class="px-6 py-4">
-                                {{ $sent['total_message'] }}
+                                {{ $sent['totalMessage'] }}
                             </td>
                             <td class="px-6 py-4">
                                 {{ $sent['sentDate'] }}
                             </td>
                             <td class="px-6 py-4">
                                 <div class="w-[300px] whitespace-nowrap overflow-hidden text-ellipsis">
-                                    {!! $sent['messageContent'] !!}
+                                    {{$sent['messageContent']}}
                                 </div>
                             </td>
                             <td class="flex items-center px-6 py-4">
@@ -123,32 +149,34 @@
             </table>
         </div>
     </form>
-    
+
 
     @if (session('msg'))
         <div class="bg-red-50 border-s-4 border-red-500 p-4" role="alert">
-          <div class="flex">
-            <div class="flex-shrink-0">
-              <!-- Icon -->
-              <span class="inline-flex justify-center items-center size-8 rounded-full border-4 border-red-100 bg-red-200 text-red-800">
-                <svg class="flex-shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M18 6 6 18"></path>
-                  <path d="m6 6 12 12"></path>
-                </svg>
-              </span>
-              <!-- End Icon -->
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <!-- Icon -->
+                    <span
+                        class="inline-flex justify-center items-center size-8 rounded-full border-4 border-red-100 bg-red-200 text-red-800">
+                        <svg class="flex-shrink-0 size-4" xmlns="http://www.w3.org/2000/svg" width="24"
+                            height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 6 6 18"></path>
+                            <path d="m6 6 12 12"></path>
+                        </svg>
+                    </span>
+                    <!-- End Icon -->
+                </div>
+                <div class="ms-3">
+                    <h3 class="text-gray-800 font-semibold">
+                        Error!
+                    </h3>
+                    <p class="text-sm text-gray-700">
+                        {{ session('msg') }}
+                    </p>
+                </div>
             </div>
-            <div class="ms-3">
-              <h3 class="text-gray-800 font-semibold">
-                Error!
-              </h3>
-              <p class="text-sm text-gray-700">
-                {{session('msg')}}
-              </p>
-            </div>
-          </div>
         </div>
-      </div>
+        </div>
     @endif
-    
 @endsection

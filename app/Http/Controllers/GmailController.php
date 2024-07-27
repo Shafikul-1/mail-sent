@@ -152,7 +152,7 @@ class GmailController extends Controller
                 return redirect()->route('home')->with('msg', 'Someting Want Wrong Login User');
             }
         } catch (\Throwable $th) {
-            return redirect()->route('home')->with('msg', "authError" . $th->getMessage());
+            return redirect()->route('home')->with('msg', $th->getMessage());
         }
     }
 
@@ -204,14 +204,17 @@ class GmailController extends Controller
         if ($getData == false) {
             return false;
         }
+
         $gmail = new Gmail($this->client);
         $uniqueMessageId = $getData['uniqueMessageId'];
 
         // This fucntion work
         try {
             $filterAllData = [];
-            foreach ($uniqueMessageId as $messageId) { 
-                $messageDetails = $gmail->users_messages->get('me', $messageId);
+            foreach ($uniqueMessageId as $messageId) {
+                $currentIdMessageCount = count($messageId);
+                $currentMessageId = $messageId[0];
+                $messageDetails = $gmail->users_messages->get('me', $messageId[0]);
                 $headers = $messageDetails->getPayload()->getHeaders();
 
                 // get other information 
@@ -249,7 +252,7 @@ class GmailController extends Controller
                         // }
                     }
                 }
-                
+
                 // Search String only fast message body data
                 $messageContent = base64_decode(strtr($messageContent, '-_', '+/'));
                 $searchString = "wrote:";
@@ -258,8 +261,9 @@ class GmailController extends Controller
                     $searchOn = "On";
                     $messageContent = strstr($messageContent, $searchOn, true);
                 }
-                
+
                 // big string sort
+                // $messageContent = htmlspecialchars_decode(strip_tags($messageContent)); //html tag skip
                 $messageContent = preg_replace('/\s+/', ' ', $messageContent);
                 $stringSort = explode(' ', trim($messageContent));
                 if (str_word_count($messageContent) >= 7) {
@@ -271,19 +275,20 @@ class GmailController extends Controller
                 }
 
                 // array push data
+                $totalData['id'] = $currentMessageId;
                 $totalData['reciverEmail'] = $reciverEmail;
                 $totalData['subject'] = $subject;
                 $totalData['sentDate'] = $sentDate;
                 $totalData['messageContent'] = $result;
+                $totalData['totalMessage'] = $currentIdMessageCount;
                 $filterAllData[] = $totalData;
             }
 
-            // return view('gmail.sent.sentMessages', compact('filterAllData'));
-            return [
-                'filterAllData' => $filterAllData,
-                'pageTokens' => $getData['pageTokens'],
-            ];
-
+            // return [
+            //     'filterAllData' => $filterAllData,
+            //     'pageTokens' => $getData['pageTokens'],
+            // ];
+            return view('gmail.sent.sentMessages', ['filterAllData' => $filterAllData,'pageTokens' => $getData['pageTokens']]);
         } catch (\Throwable $th) {
             return $th->getMessage();
         }
@@ -320,21 +325,20 @@ class GmailController extends Controller
                 $pageTokens[] = $pageToken;
             }
 
+            // Get All Email Message IDs
             $sentMessageIds = $gmail->users_messages->listUsersMessages('me', [
                 'q' => 'is:sent',
                 'pageToken' => $pageId ?: null
             ]);
 
             $sentMessage = $sentMessageIds->getMessages();
-            $uniqueMessageId = [];
-            foreach ($sentMessage as $messageThredId) {
-                if (!in_array($messageThredId->id, $uniqueMessageId)) {
-                    $uniqueMessageId[] = $messageThredId->id;
-                }
+            $allMessageId = [];
+            foreach ($sentMessage as $messageAllId) {
+                $allMessageId[$messageAllId->threadId][] = $messageAllId->id;
             }
 
             return [
-                'uniqueMessageId' => $uniqueMessageId,
+                'uniqueMessageId' => $allMessageId,
                 'pageTokens' => $pageTokens,
             ];
         } else {
