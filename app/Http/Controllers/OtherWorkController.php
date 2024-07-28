@@ -17,19 +17,23 @@ class OtherWorkController extends Controller
      */
     public function index()
     {
-        // $currentDate = now();
+        $currentTime = now()->format('Y-m-d H:i:s');
         // $nextTime = $currentDate->addMinutes(10)->format('Y-m-d H:i:s');
         // $datas = OtherWork::where('sendingTime' , '<=', $nextTime)->get(['id','action', 'messageId', 'sendingTime', 'user_id', 'reply']);
        
-        $currentAllData = OtherWork::all(['id','action', 'messageId', 'sendingTime', 'user_id', 'reply']);
+        $currentAllData = OtherWork::whereRaw("status = ? AND sendingTime <= ?", ['running', $currentTime])->get(['id','action', 'messageId', 'sendingTime', 'user_id', 'reply', 'status']);
 
         // return $currentAllData;
-       
         try{
             EmailReplyJob::dispatch($currentAllData);
-            echo "success --- ";
+            echo "success --- <br>";
         } catch(\Throwable $error){
             echo $error->getMessage();
+        }
+
+        foreach($currentAllData as $updateId){
+            OtherWork::where('messageId', $updateId->messageId)->update(['status'=>'pending']);
+            echo " {$updateId->id} update <br>";
         }
     }
 
@@ -52,12 +56,11 @@ class OtherWorkController extends Controller
             'action' => 'required|string',
         ]);
 
-        // if (!is_null($reqest->sendingTime)) {
-        //     $request->validate([
-        //         'sendingTime' => 'numeric',
-
-        //     ]);
-        // }
+        if (!is_null($request->sendingTime)) {
+            $request->validate([
+                'sendingTime' => 'numeric',
+            ]);
+        }
 
         $intervalMinutes = $request->sendingTime;
         foreach ($request->messageId as $id) {
@@ -69,6 +72,7 @@ class OtherWorkController extends Controller
                 'user_id' => $userId,
                 'reply' => $request->reply,
                 'sendingTime' => $scheduleTime,
+                'status' => 'running',
             ]);
             $intervalMinutes += $request->sendingTime;
         }

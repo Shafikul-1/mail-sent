@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use Google\Client;
 use App\Models\User;
+use App\Models\OtherWork;
 use Google\Service\Gmail;
 use App\Models\GoogleToken;
 use Illuminate\Bus\Queueable;
@@ -51,12 +52,14 @@ class EmailReplyJob implements ShouldQueue
         foreach ($this->datas as $data) {
             if ($data->action === 'reply') {
                 $currentTime = now()->format('Y-m-d H:i:s');
-                if ($data->sendingTime == $currentTime || $data->sendingTime <= $currentTime) {
+                if ($data->sendingTime <= $currentTime) {
                     $replysent = $this->messageSentSchedule($data->reply, $data->messageId, $data->user_id);
                     if ($replysent) {
-                        echo "successful reply -- ";
+                        $deleteSentEmailId = OtherWork::where('messageId', $data->messageId)->delete();
+                        echo ($deleteSentEmailId) ? 'replySentIdDeleteSuccess ---' : 'replySentIdDeleteFailed --- ';
                     } else {
-                        echo "failed";
+                        $updateSentEmailId = OtherWork::where('messageId', $data->messageId)->update(['status' => 'running']);
+                        echo ($updateSentEmailId) ? 'replyNotSentIdUpdateSuccess ---' : 'replyNotSentIdUpdateFailed --- ';
                     }
                 }
             }
