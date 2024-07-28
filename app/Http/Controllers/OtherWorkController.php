@@ -70,7 +70,7 @@ class OtherWorkController extends Controller
                 'action' => $request->action,
                 'messageId' => $id,
                 'user_id' => $userId,
-                'reply' => $request->reply,
+                'reply' => $request->input('reply'),
                 'sendingTime' => $scheduleTime,
                 'status' => 'running',
             ]);

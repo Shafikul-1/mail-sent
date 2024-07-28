@@ -9,9 +9,11 @@ use Google\Service\Gmail;
 use App\Models\GoogleToken;
 use Illuminate\Bus\Queueable;
 use Google\Service\Gmail\Message;
+use Google\Service\Gmail\MessagePart;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
 use App\Http\Controllers\GmailController;
+use Google\Service\Gmail\MessagePartBody;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
@@ -76,20 +78,64 @@ class EmailReplyJob implements ShouldQueue
                 $originalMessage = $gmail->users_messages->get('me', $messageId);
                 $threadId = $originalMessage->getThreadId();
 
-                // Create the raw MIME message
-                $replyMessage = new Message();
-                $rawMessage = "From: " . $this->getHeader($originalMessage, 'From') . "\r\n";
-                $rawMessage .= "To: " . $this->getHeader($originalMessage, 'To') . "\r\n";
-                $rawMessage .= "Subject: Re: " . $this->getHeader($originalMessage, 'Subject') . "\r\n";
-                $rawMessage .= "In-Reply-To: " . $this->getHeader($originalMessage, 'Message-ID') . "\r\n";
-                $rawMessage .= "References: " . $this->getHeader($originalMessage, 'Message-ID') . "\r\n";
+                // Extract original message details
+                $from = $this->getHeader($originalMessage, 'From');
+                $to = $this->getHeader($originalMessage, 'To');
+                $subject = $this->getHeader($originalMessage, 'Subject');
+                $messageIdHeader = $this->getHeader($originalMessage, 'Message-ID');
+                $date = $this->getHeader($originalMessage, 'Date');
+                $originalBody = $this->getBody($originalMessage);
+
+                // Format the date
+                $dateTime = new \DateTime($date);
+                $formattedDate = $dateTime->format('D, M d, Y \a\t g:i A');
+
+                // Format the "From" address with a mailto link if not already formatted
+                if (preg_match('/(.*) <(.+)>/', $from, $matches)) {
+                    $fromName = $matches[1];
+                    $fromEmail = $matches[2];
+                    $fromFormatted = "$fromName &lt;<a href='mailto:$fromEmail'>$fromEmail</a>&gt;";
+                } else {
+                    $fromFormatted = $from;
+                }
+
+                // Create the message parts
+                $textPart = new MessagePart();
+                $textPart->setMimeType('text/plain');
+                $textPartBody = new MessagePartBody();
+                $textPartBody->setData(base64_encode($replyText));
+                $textPart->setBody($textPartBody);
+
+                $htmlBody = $replyText . "<br><br>On $formattedDate, $fromFormatted wrote:<br><blockquote style='margin:0px 0px 0px 0.8ex;border-left:1px solid rgb(204,204,204);padding-left:1ex'>$originalBody</blockquote>";
+                $htmlPart = new MessagePart();
+                $htmlPart->setMimeType('text/html');
+                $htmlPartBody = new MessagePartBody();
+                $htmlPartBody->setData(base64_encode($htmlBody));
+                $htmlPart->setBody($htmlPartBody);
+
+                // Create the full message with parts
+                $rawMessage = "From: $from\r\n";
+                $rawMessage .= "To: $to\r\n";
+                $rawMessage .= "Subject: Re: $subject\r\n";
+                $rawMessage .= "In-Reply-To: $messageIdHeader\r\n";
+                $rawMessage .= "References: $messageIdHeader\r\n";
+                $rawMessage .= "Content-Type: multipart/alternative; boundary=\"boundary\"\r\n";
+                $rawMessage .= "\r\n--boundary\r\n";
+                $rawMessage .= "Content-Type: text/plain; charset=UTF-8\r\n";
+                $rawMessage .= "Content-Transfer-Encoding: base64\r\n\r\n";
+                $rawMessage .= $textPartBody->getData();
+                $rawMessage .= "\r\n--boundary\r\n";
                 $rawMessage .= "Content-Type: text/html; charset=UTF-8\r\n";
-                $rawMessage .= "Content-Transfer-Encoding: quoted-printable\r\n";
-                $rawMessage .= "\r\n " . $replyText;
-                // return $rawMessage;
+                $rawMessage .= "Content-Transfer-Encoding: base64\r\n\r\n";
+                $rawMessage .= $htmlPartBody->getData();
+                $rawMessage .= "\r\n--boundary--";
+
+                // Encode the message
                 $rawMessageEncode = base64_encode($rawMessage);
                 $plainRawMessage = str_replace(['+', '/', '='], ['-', '_', ''], $rawMessageEncode);
 
+                // Create and send the reply message
+                $replyMessage = new Message();
                 $replyMessage->setRaw($plainRawMessage);
                 $replyMessage->setThreadId($threadId);
                 $sentMessage = $gmail->users_messages->send('me', $replyMessage);
@@ -103,6 +149,27 @@ class EmailReplyJob implements ShouldQueue
         }
     }
 
+    // Get Body Message
+    private function getBody($message)
+    {
+        $parts = $message->getPayload()->getParts();
+        foreach ($parts as $part) {
+            if ($part->getMimeType() === 'text/html') {
+                $data = $part->getBody()->getData();
+                return base64_decode(strtr($data, '-_', '+/'));
+            } elseif ($part->getMimeType() === 'multipart/alternative') {
+                foreach ($part->getParts() as $subPart) {
+                    if ($subPart->getMimeType() === 'text/html') {
+                        $data = $subPart->getBody()->getData();
+                        return base64_decode(strtr($data, '-_', '+/'));
+                    }
+                }
+            }
+        }
+        return '';
+    }
+
+    // Header GEt
     private function getHeader($message, $name)
     {
         foreach ($message->getPayload()->getHeaders() as $header) {
