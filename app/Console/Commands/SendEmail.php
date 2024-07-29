@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Http\Controllers\OtherWorkController;
 use App\Http\Controllers\testController;
 use Illuminate\Console\Command;
 
@@ -30,7 +31,9 @@ class SendEmail extends Command
     {
         $sentMailCall = new testController();
         $result = $sentMailCall->sentEmail();
-        $this->info($result);
+        $mailReply = new OtherWorkController();
+        $work = $mailReply->index();
+        $this->info($work);
         return 0;
     }
 }
