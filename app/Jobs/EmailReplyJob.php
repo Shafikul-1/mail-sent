@@ -44,24 +44,30 @@ class EmailReplyJob implements ShouldQueue
         $applicationName = "my projet";
         $this->client = new Client();
         $this->client->setApplicationName($applicationName);
-        $this->client->setAuthConfig(storage_path('app/client_secrate.json'));
+        $this->client->setAuthConfig(storage_path('app/comshafikul.runjila.json'));
         $this->client->addScope('https://www.googleapis.com/auth/gmail.readonly');
         $this->client->addScope('https://www.googleapis.com/auth/gmail.modify');
         $this->client->addScope('https://www.googleapis.com/auth/gmail.send');
         $this->client->setAccessType('offline');
         $this->client->setPrompt('consent');
 
+
         foreach ($this->datas as $data) {
             if ($data->action === 'reply') {
                 $currentTime = now()->format('Y-m-d H:i:s');
                 if ($data->sendingTime <= $currentTime) {
-                    $replysent = $this->messageSentSchedule($data->reply, $data->messageId, $data->user_id);
-                    if ($replysent) {
-                        $deleteSentEmailId = OtherWork::where('messageId', $data->messageId)->delete();
-                        echo ($deleteSentEmailId) ? 'replySentIdDeleteSuccess ---' : 'replySentIdDeleteFailed --- ';
-                    } else {
+                    try {
+                        $replysent = $this->messageSentSchedule($data->reply, $data->messageId, $data->user_id);
+                        if ($replysent) {
+                            $deleteSentEmailId = OtherWork::where('messageId', $data->messageId)->delete();
+                            echo ($deleteSentEmailId) ? 'replySentIdDeleteSuccess ---' : 'replySentIdDeleteFailed --- ';
+                        } else {
+                            $updateSentEmailId = OtherWork::where('messageId', $data->messageId)->update(['status' => 'running']);
+                            echo ($updateSentEmailId) ? 'replyNotSentIdUpdateSuccess ---' : 'replyNotSentIdUpdateFailed --- ';
+                        }
+                    } catch (\Exception $e) {
                         $updateSentEmailId = OtherWork::where('messageId', $data->messageId)->update(['status' => 'running']);
-                        echo ($updateSentEmailId) ? 'replyNotSentIdUpdateSuccess ---' : 'replyNotSentIdUpdateFailed --- ';
+                        echo $e->getMessage();
                     }
                 }
             }

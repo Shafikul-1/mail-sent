@@ -28,20 +28,26 @@ class GmailController extends Controller
         $applicationName = "my projet";
         $this->client = new Client();
         $this->client->setApplicationName($applicationName);
-        $this->client->setAuthConfig(storage_path('app/client_secrate.json'));
-        $this->client->addScope('https://www.googleapis.com/auth/gmail.readonly');
-        $this->client->addScope('https://www.googleapis.com/auth/gmail.modify');
-        $this->client->addScope('https://www.googleapis.com/auth/gmail.send');
-        $this->client->setRedirectUri('http://127.0.0.1:8000/gmail/callback');
+        $this->client->setAuthConfig(storage_path('app/comshafikul.runjila.json'));
+        // $this->client->addScope('https://www.googleapis.com/auth/gmail.readonly');
+        // $this->client->addScope('https://www.googleapis.com/auth/gmail.modify');
+        // $this->client->addScope('https://www.googleapis.com/auth/gmail.send');
+        $this->client->addScope(Gmail::MAIL_GOOGLE_COM); // General Gmail access scope
+        $this->client->addScope(Gmail::GMAIL_READONLY);
+        $this->client->addScope(Gmail::GMAIL_MODIFY);
+        $this->client->addScope(Gmail::GMAIL_SEND);
+
+        $this->client->setRedirectUri(route('handleGoogleCallback'));
         $this->client->setAccessType('offline');
         $this->client->setPrompt('consent');
-        $this->client->setScopes(
-            [
-                \Google\Service\Oauth2::USERINFO_PROFILE,
-                \Google\Service\Oauth2::USERINFO_EMAIL,
-                \Google\Service\Oauth2::OPENID,
-            ]
-        );
+        // $this->client->setScopes(
+        //     [
+        //         \Google\Service\Oauth2::USERINFO_PROFILE,
+        //         \Google\Service\Oauth2::USERINFO_EMAIL,
+        //         \Google\Service\Oauth2::OPENID,
+        //     ]
+        // );
+
         $this->client->setIncludeGrantedScopes(true);
     }
 
@@ -53,6 +59,110 @@ class GmailController extends Controller
     }
 
     // Authentecation All Handle code
+    // public function handleGoogleCallback(Request $request)
+    // {
+    //     $code = $request->input('code');
+    //     if (empty($code)) {
+    //         return redirect()->route('home')->with('msg', "Code is missing");
+    //     }
+
+    //     $this->client->setRedirectUri(route('handleGoogleCallback'));
+
+    //     try {
+    //         $token = $this->client->fetchAccessTokenWithAuthCode($code);
+    //         if (isset($token['error'])) {
+    //             return redirect()->route('home')->with('msg', "Error: " . $token['error']);
+    //         }
+
+    //         // Save the refresh token if it's available
+    //         if (isset($token['refresh_token'])) {
+    //             Session::put('google_refresh_token', $token['refresh_token']);
+    //         }
+
+    //         // Set the access token
+    //         $this->client->setAccessToken($token['access_token']);
+
+    //         if ($this->client->isAccessTokenExpired()) {
+    //             $refreshToken = Session::get('google_refresh_token');
+    //             if ($refreshToken) {
+    //                 $this->client->fetchAccessTokenWithRefreshToken($refreshToken);
+    //                 // Update or store the new access token
+    //                 $newAccessToken = $this->client->getAccessToken();
+    //                 $this->client->setAccessToken($newAccessToken);
+    //             } else {
+    //                 return redirect()->route('home')->with('msg', "Refresh token is missing.");
+    //             }
+    //         }
+
+    //         // Fetch user information
+    //         $google_oauth = new Oauth2($this->client);
+    //         $google_account_info = $google_oauth->userinfo->get();
+    //         // Extract user details
+    //         $userId = $google_account_info->id;
+    //         $email = $google_account_info->email;
+    //         $verifiedEmail = $google_account_info->verifiedEmail;
+    //         $name = $google_account_info->name;
+    //         $givenName = $google_account_info->givenName;
+    //         $familyName = $google_account_info->familyName;
+    //         $picture = $google_account_info->picture;
+    //         $locale = $google_account_info->locale;
+    //         $hostedDomain = $google_account_info->hd;
+    //         $gender = $google_account_info->gender;
+    //         $birthday = $google_account_info->birthday;
+    //         $profileUrl = $google_account_info->profile;
+    //         $emailVerifiedByUser = $google_account_info->emailVerified;
+    //         $googleProfileLink = $google_account_info->link;
+
+    //         $accessInfo = [
+    //             'id' => $userId,
+    //             'email' => $email,
+    //             'verifiedEmail' => $verifiedEmail,
+    //             'name' => $name,
+    //             'givenName' => $givenName,
+    //             'familyName' => $familyName,
+    //             'picture' => $picture,
+    //             'locale' => $locale,
+    //             'hostedDomain' => $hostedDomain,
+    //             'gender' => $gender,
+    //             'birthday' => $birthday,
+    //             'profileUrl' => $profileUrl,
+    //             'emailVerifiedByUser' => $emailVerifiedByUser,
+    //             'googleProfileLink' => $googleProfileLink,
+    //         ];
+
+
+    //         // Check if the user exists
+    //         $genaratePass = "GoogleLoginGenaratePass123";
+    //         $user = User::firstOrCreate(
+    //             ['email' => $email],
+    //             ['name' => $name, 'password' => $genaratePass]
+    //         );
+
+    //         // Save or update the token
+    //         GoogleToken::updateOrCreate(
+    //             ['user_id' => $user->id],
+    //             [
+    //                 'access_token' => json_encode($token),
+    //                 'access_info' => json_encode($accessInfo)
+    //             ]
+    //         );
+
+    //         // User Login
+    //         $loginUser = Auth::attempt([
+    //             'email' => $email,
+    //             'password' => $genaratePass,
+    //         ]);
+
+    //         // Check login
+    //         if ($loginUser) {
+    //             return redirect()->route('home')->with('msg', 'User Logged In Successful');
+    //         } else {
+    //             return redirect()->route('home')->with('msg', 'Someting Want Wrong Login User');
+    //         }
+    //     } catch (\Throwable $th) {
+    //         return redirect()->route('home')->with('msg', $th->getMessage());
+    //     }
+    // }
     public function handleGoogleCallback(Request $request)
     {
         $code = $request->input('code');
@@ -60,29 +170,31 @@ class GmailController extends Controller
             return redirect()->route('home')->with('msg', "Code is missing");
         }
 
-        $this->client->setRedirectUri(route('handleGoogleCallback'));
-
         try {
             $token = $this->client->fetchAccessTokenWithAuthCode($code);
+            Session::put('Gtoken', $token);
+
             if (isset($token['error'])) {
                 return redirect()->route('home')->with('msg', "Error: " . $token['error']);
             }
 
-            // Save the refresh token if it's available
             if (isset($token['refresh_token'])) {
                 Session::put('google_refresh_token', $token['refresh_token']);
             }
 
-            // Set the access token
-            $this->client->setAccessToken($token['access_token']);
+            $this->client->setAccessToken($token);
+
+            // Ensure token has correct scopes
+            $scopes = $this->client->getScopes();
+            Log::info('Granted Scopes: ' . json_encode($scopes));
 
             if ($this->client->isAccessTokenExpired()) {
                 $refreshToken = Session::get('google_refresh_token');
                 if ($refreshToken) {
-                    $this->client->fetchAccessTokenWithRefreshToken($refreshToken);
-                    // Update or store the new access token
-                    $newAccessToken = $this->client->getAccessToken();
-                    $this->client->setAccessToken($newAccessToken);
+                    $newToken = $this->client->fetchAccessTokenWithRefreshToken($refreshToken);
+                    $this->client->setAccessToken($newToken);
+                    Session::put('Gtoken', $newToken);
+                    Log::info('New Access Token: ' . json_encode($newToken));
                 } else {
                     return redirect()->route('home')->with('msg', "Refresh token is missing.");
                 }
@@ -91,88 +203,78 @@ class GmailController extends Controller
             // Fetch user information
             $google_oauth = new Oauth2($this->client);
             $google_account_info = $google_oauth->userinfo->get();
-            // Extract user details
-            $userId = $google_account_info->id;
-            $email = $google_account_info->email;
-            $verifiedEmail = $google_account_info->verifiedEmail;
-            $name = $google_account_info->name;
-            $givenName = $google_account_info->givenName;
-            $familyName = $google_account_info->familyName;
-            $picture = $google_account_info->picture;
-            $locale = $google_account_info->locale;
-            $hostedDomain = $google_account_info->hd;
-            $gender = $google_account_info->gender;
-            $birthday = $google_account_info->birthday;
-            $profileUrl = $google_account_info->profile;
-            $emailVerifiedByUser = $google_account_info->emailVerified;
-            $googleProfileLink = $google_account_info->link;
 
-            $accessInfo = [
-                'id' => $userId,
-                'email' => $email,
-                'verifiedEmail' => $verifiedEmail,
-                'name' => $name,
-                'givenName' => $givenName,
-                'familyName' => $familyName,
-                'picture' => $picture,
-                'locale' => $locale,
-                'hostedDomain' => $hostedDomain,
-                'gender' => $gender,
-                'birthday' => $birthday,
-                'profileUrl' => $profileUrl,
-                'emailVerifiedByUser' => $emailVerifiedByUser,
-                'googleProfileLink' => $googleProfileLink,
-            ];
-
-
-            // Check if the user exists
-            $genaratePass = "GoogleLoginGenaratePass123";
+            // Handle user information
             $user = User::firstOrCreate(
-                ['email' => $email],
-                ['name' => $name, 'password' => $genaratePass]
+                ['email' => $google_account_info->email],
+                ['name' => $google_account_info->name, 'password' => 'GoogleLoginGenaratePass123']
             );
 
-            // Save or update the token
             GoogleToken::updateOrCreate(
                 ['user_id' => $user->id],
-                [
-                    'access_token' => json_encode($token),
-                    'access_info' => json_encode($accessInfo)
-                ]
+                ['access_token' => json_encode($token)]
             );
 
-            // User Login
-            $loginUser = Auth::attempt([
-                'email' => $email,
-                'password' => $genaratePass,
-            ]);
+            Auth::login($user);
 
-            // Check login
-            if ($loginUser) {
-                return redirect()->route('home')->with('msg', 'User Logged In Successful');
-            } else {
-                return redirect()->route('home')->with('msg', 'Someting Want Wrong Login User');
-            }
+            return redirect()->route('home')->with('msg', 'User Logged In Successfully');
         } catch (\Throwable $th) {
             return redirect()->route('home')->with('msg', $th->getMessage());
         }
     }
 
     // GEt All Gail
+    // public function getMail()
+    // {
+    //     $Gtoken = Session::get('Gtoken');
+    //     $this->client->setAccessToken($Gtoken);
+
+    //     if ($this->client->isAccessTokenExpired()) {
+    //         $refreshToken = Session::get('google_refresh_token');
+    //         if ($refreshToken) {
+    //             $this->client->fetchAccessTokenWithRefreshToken($refreshToken);
+    //             // Update or store the new access token
+    //             $newAccessToken = $this->client->getAccessToken();
+    //             $this->client->setAccessToken($newAccessToken);
+
+    //             // Log the new access token for debugging
+    //             Log::info('New Access Token: ' . json_encode($newAccessToken));
+    //         } else {
+    //             return redirect()->route('home')->with('msg', "Refresh token is missing.");
+    //         }
+    //     }
+
+    //     // $gmail = new \Google\Service\Gmail($this->client);
+    //     $gmail = new Gmail($this->client);
+    //     $inbox = $gmail->users_messages->listUsersMessages('me');
+
+    //     return view('gmail.inbox.inboxMessages', ['inboxMessage' => $inbox->getMessages()]);
+    //     // return $data;
+    // }
+
     public function getMail()
     {
-        $accessCheck = $this->checkAccess();
-        if (!$accessCheck) {
-            return redirect()->route('home')->with('msg', "checkAccess denided");
+        $Gtoken = Session::get('Gtoken');
+        $this->client->setAccessToken($Gtoken);
+
+        if ($this->client->isAccessTokenExpired()) {
+            $refreshToken = Session::get('google_refresh_token');
+            if ($refreshToken) {
+                $newToken = $this->client->fetchAccessTokenWithRefreshToken($refreshToken);
+                $this->client->setAccessToken($newToken);
+                Session::put('Gtoken', $newToken);
+                Log::info('New Access Token: ' . json_encode($newToken));
+            } else {
+                return redirect()->route('home')->with('msg', "Refresh token is missing.");
+            }
         }
 
-        // $gmail = new \Google\Service\Gmail($this->client);
         $gmail = new Gmail($this->client);
         $inbox = $gmail->users_messages->listUsersMessages('me');
-
+        return $inbox->getMessages();
         return view('gmail.inbox.inboxMessages', ['inboxMessage' => $inbox->getMessages()]);
-        // return $data;
     }
+
 
     // inbox Single message View
     public function singleInboxMessage($messageId)
@@ -432,7 +534,7 @@ class GmailController extends Controller
                 $originalMessage = $gmail->users_messages->get('me', $messageId);
                 $threadId = $originalMessage->getThreadId();
                 $replyText = $request->input('reply');
-        
+
                 // Extract original message details
                 $from = $this->getHeader($originalMessage, 'From');
                 $to = $this->getHeader($originalMessage, 'To');
@@ -440,11 +542,11 @@ class GmailController extends Controller
                 $messageIdHeader = $this->getHeader($originalMessage, 'Message-ID');
                 $date = $this->getHeader($originalMessage, 'Date');
                 $originalBody = $this->getBody($originalMessage);
-        
+
                 // Format the date
                 $dateTime = new \DateTime($date);
                 $formattedDate = $dateTime->format('D, M d, Y \a\t g:i A');
-        
+
                 // Format the "From" address with a mailto link if not already formatted
                 if (preg_match('/(.*) <(.+)>/', $from, $matches)) {
                     $fromName = $matches[1];
@@ -453,21 +555,21 @@ class GmailController extends Controller
                 } else {
                     $fromFormatted = $from;
                 }
-        
+
                 // Create the message parts
                 $textPart = new MessagePart();
                 $textPart->setMimeType('text/plain');
                 $textPartBody = new MessagePartBody();
                 $textPartBody->setData(base64_encode($replyText));
                 $textPart->setBody($textPartBody);
-    
+
                 $htmlBody = $replyText . "<br><br>On $formattedDate, $fromFormatted wrote:<br><blockquote style='margin:0px 0px 0px 0.8ex;border-left:1px solid rgb(204,204,204);padding-left:1ex'>$originalBody</blockquote>";
                 $htmlPart = new MessagePart();
                 $htmlPart->setMimeType('text/html');
                 $htmlPartBody = new MessagePartBody();
                 $htmlPartBody->setData(base64_encode($htmlBody));
                 $htmlPart->setBody($htmlPartBody);
-    
+
                 // Create the full message with parts
                 $rawMessage = "From: $from\r\n";
                 $rawMessage .= "To: $to\r\n";
@@ -484,28 +586,27 @@ class GmailController extends Controller
                 $rawMessage .= "Content-Transfer-Encoding: base64\r\n\r\n";
                 $rawMessage .= $htmlPartBody->getData();
                 $rawMessage .= "\r\n--boundary--";
-        
+
                 // Encode the message
                 $rawMessageEncode = base64_encode($rawMessage);
                 $plainRawMessage = str_replace(['+', '/', '='], ['-', '_', ''], $rawMessageEncode);
-        
+
                 // Create and send the reply message
                 $replyMessage = new Message();
                 $replyMessage->setRaw($plainRawMessage);
                 $replyMessage->setThreadId($threadId);
                 $sentMessage = $gmail->users_messages->send('me', $replyMessage);
-        
+
                 return response()->json(['message' => 'Reply sent successfully']);
             } catch (\Google\Service\Exception $e) {
                 Log::error('Error sending message:', ['error' => $e->getMessage()]);
                 return response()->json(['error' => $e->getMessage()]);
             }
-    
         } else {
             return redirect()->route('home')->with('msg', "Token Expired");
         }
     }
-    
+
     // Get Body Message
     private function getBody($message)
     {
