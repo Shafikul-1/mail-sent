@@ -44,7 +44,7 @@ class EmailReplyJob implements ShouldQueue
         $applicationName = "my projet";
         $this->client = new Client();
         $this->client->setApplicationName($applicationName);
-        $this->client->setAuthConfig(storage_path('app/comshafikul.runjila.json'));
+        $this->client->setAuthConfig(storage_path('app/comnovaellieph05.json'));
         $this->client->addScope('https://www.googleapis.com/auth/gmail.readonly');
         $this->client->addScope('https://www.googleapis.com/auth/gmail.modify');
         $this->client->addScope('https://www.googleapis.com/auth/gmail.send');

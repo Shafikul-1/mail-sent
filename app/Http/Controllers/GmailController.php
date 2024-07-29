@@ -25,38 +25,108 @@ class GmailController extends Controller
     // SEt Client
     public function __construct()
     {
-        $applicationName = "my projet";
         $this->client = new Client();
-        $this->client->setApplicationName($applicationName);
-        $this->client->setAuthConfig(storage_path('app/comshafikul.runjila.json'));
-        // $this->client->addScope('https://www.googleapis.com/auth/gmail.readonly');
-        // $this->client->addScope('https://www.googleapis.com/auth/gmail.modify');
-        // $this->client->addScope('https://www.googleapis.com/auth/gmail.send');
-        $this->client->addScope(Gmail::MAIL_GOOGLE_COM); // General Gmail access scope
-        $this->client->addScope(Gmail::GMAIL_READONLY);
-        $this->client->addScope(Gmail::GMAIL_MODIFY);
-        $this->client->addScope(Gmail::GMAIL_SEND);
-
+        $this->client->setApplicationName('My Project');
+        $this->client->setAuthConfig(storage_path('app/comnovaellieph05.json'));
+        $this->client->addScope([
+            Gmail::MAIL_GOOGLE_COM, // General Gmail access scope
+            Gmail::GMAIL_READONLY,
+            Gmail::GMAIL_MODIFY,
+            Gmail::GMAIL_SEND,
+            Oauth2::USERINFO_PROFILE,
+            Oauth2::USERINFO_EMAIL
+        ]);
         $this->client->setRedirectUri(route('handleGoogleCallback'));
         $this->client->setAccessType('offline');
         $this->client->setPrompt('consent');
-        // $this->client->setScopes(
-        //     [
-        //         \Google\Service\Oauth2::USERINFO_PROFILE,
-        //         \Google\Service\Oauth2::USERINFO_EMAIL,
-        //         \Google\Service\Oauth2::OPENID,
-        //     ]
-        // );
-
         $this->client->setIncludeGrantedScopes(true);
     }
 
-    // REdirect Working
     public function redirectToGoogle()
     {
         $authUrl = $this->client->createAuthUrl();
         return redirect()->away($authUrl);
     }
+
+    public function handleGoogleCallback(Request $request)
+    {
+        $code = $request->input('code');
+        if (empty($code)) {
+            return redirect()->route('home')->with('msg', 'Code is missing');
+        }
+
+        try {
+            $token = $this->client->fetchAccessTokenWithAuthCode($code);
+            if (isset($token['error'])) {
+                return redirect()->route('home')->with('msg', 'Error: ' . $token['error']);
+            }
+
+            Session::put('Gtoken', $token);
+            if (isset($token['refresh_token'])) {
+                Session::put('google_refresh_token', $token['refresh_token']);
+            }
+
+            $this->client->setAccessToken($token);
+
+            if ($this->client->isAccessTokenExpired()) {
+                $refreshToken = Session::get('google_refresh_token');
+                if ($refreshToken) {
+                    $newToken = $this->client->fetchAccessTokenWithRefreshToken($refreshToken);
+                    $this->client->setAccessToken($newToken);
+                    Session::put('Gtoken', $newToken);
+                } else {
+                    return redirect()->route('home')->with('msg', 'Refresh token is missing.');
+                }
+            }
+
+            $google_oauth = new Oauth2($this->client);
+            $google_account_info = $google_oauth->userinfo->get();
+            if (!$google_account_info->email) {
+                return redirect()->route('home')->with('msg', 'Unable to retrieve user email from Google.');
+            }
+
+            $user = User::firstOrCreate(
+                ['email' => $google_account_info->email],
+                ['name' => $google_account_info->name, 'password' => "EmailPass"]
+            );
+
+            GoogleToken::updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'access_token' => json_encode($token),
+                    'access_info' => json_encode([
+                        'id' => $google_account_info->id,
+                        'name' => $google_account_info->name,
+                        'email' => $google_account_info->email,
+                        'picture' => $google_account_info->picture,
+                        'profile' => $google_account_info->profile,
+                        'gender' => $google_account_info->gender,
+                        'birthday' => $google_account_info->birthday,
+                        'googleProfileLink' => $google_account_info->link,
+                    ])
+                ]
+            );
+
+            Auth::login($user);
+            return redirect()->route('home')->with('msg', 'User Logged In Successfully');
+        } catch (\Exception $e) {
+            Log::error('Error fetching user info: ' . $e->getMessage());
+            return redirect()->route('home')->with('msg', 'Error: ' . $e->getMessage());
+        }
+    }
+
+    // $this->client->addScope('https://www.googleapis.com/auth/gmail.readonly');
+    // $this->client->addScope('https://www.googleapis.com/auth/gmail.modify');
+    // $this->client->addScope('https://www.googleapis.com/auth/gmail.send');
+    // $this->client->setRedirectUri('http://localhost:8000/gmail/callback');
+    // $this->client->setScopes(
+    //     [
+    //         \Google\Service\Oauth2::USERINFO_PROFILE,
+    //         \Google\Service\Oauth2::USERINFO_EMAIL,
+    //         \Google\Service\Oauth2::OPENID,
+    //     ]
+    // );
+
 
     // Authentecation All Handle code
     // public function handleGoogleCallback(Request $request)
@@ -163,65 +233,7 @@ class GmailController extends Controller
     //         return redirect()->route('home')->with('msg', $th->getMessage());
     //     }
     // }
-    public function handleGoogleCallback(Request $request)
-    {
-        $code = $request->input('code');
-        if (empty($code)) {
-            return redirect()->route('home')->with('msg', "Code is missing");
-        }
 
-        try {
-            $token = $this->client->fetchAccessTokenWithAuthCode($code);
-            Session::put('Gtoken', $token);
-
-            if (isset($token['error'])) {
-                return redirect()->route('home')->with('msg', "Error: " . $token['error']);
-            }
-
-            if (isset($token['refresh_token'])) {
-                Session::put('google_refresh_token', $token['refresh_token']);
-            }
-
-            $this->client->setAccessToken($token);
-
-            // Ensure token has correct scopes
-            $scopes = $this->client->getScopes();
-            Log::info('Granted Scopes: ' . json_encode($scopes));
-
-            if ($this->client->isAccessTokenExpired()) {
-                $refreshToken = Session::get('google_refresh_token');
-                if ($refreshToken) {
-                    $newToken = $this->client->fetchAccessTokenWithRefreshToken($refreshToken);
-                    $this->client->setAccessToken($newToken);
-                    Session::put('Gtoken', $newToken);
-                    Log::info('New Access Token: ' . json_encode($newToken));
-                } else {
-                    return redirect()->route('home')->with('msg', "Refresh token is missing.");
-                }
-            }
-
-            // Fetch user information
-            $google_oauth = new Oauth2($this->client);
-            $google_account_info = $google_oauth->userinfo->get();
-
-            // Handle user information
-            $user = User::firstOrCreate(
-                ['email' => $google_account_info->email],
-                ['name' => $google_account_info->name, 'password' => 'GoogleLoginGenaratePass123']
-            );
-
-            GoogleToken::updateOrCreate(
-                ['user_id' => $user->id],
-                ['access_token' => json_encode($token)]
-            );
-
-            Auth::login($user);
-
-            return redirect()->route('home')->with('msg', 'User Logged In Successfully');
-        } catch (\Throwable $th) {
-            return redirect()->route('home')->with('msg', $th->getMessage());
-        }
-    }
 
     // GEt All Gail
     // public function getMail()
@@ -271,7 +283,7 @@ class GmailController extends Controller
 
         $gmail = new Gmail($this->client);
         $inbox = $gmail->users_messages->listUsersMessages('me');
-        return $inbox->getMessages();
+        // return $inbox->getMessages();
         return view('gmail.inbox.inboxMessages', ['inboxMessage' => $inbox->getMessages()]);
     }
 
@@ -398,6 +410,7 @@ class GmailController extends Controller
     // Sent message All page id fetch
     private function sentMailAllData($pageId)
     {
+        set_time_limit(120);
         if ($this->checkGmailAccess()) {
             $gmail = new Gmail($this->client);
             $pageTokens = [];
@@ -450,8 +463,8 @@ class GmailController extends Controller
     // Sent Single message View
     public function singleSentMessage($messageId)
     {
+        $dbgoogleToken = GoogleToken::where('user_id', Auth::user()->id)->get();
         try {
-            $dbgoogleToken = GoogleToken::where('user_id', 1)->get();
             if (!$dbgoogleToken[0]) {
                 return redirect()->route('home')->with('msg', "Token Is null");
             }
