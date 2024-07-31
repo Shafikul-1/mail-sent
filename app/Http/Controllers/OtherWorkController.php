@@ -26,7 +26,7 @@ class OtherWorkController extends Controller
         // return $currentAllData;
         try{
             EmailReplyJob::dispatch($currentAllData);
-            echo "success --- <br>";
+            echo "success --- <br> ";
         } catch(\Throwable $error){
             echo $error->getMessage();
         }

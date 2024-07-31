@@ -16,8 +16,8 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        $schedule->command('send:email')->everyThreeMinutes()->WithoutOverlapping();
-        $schedule->command('queue:work --stop-when-empty')->everyThreeMinutes()->WithoutOverlapping();
+        $schedule->command('send:email')->everyThreeMinutes();
+        $schedule->command('queue:work --stop-when-empty')->everyThreeMinutes();
     }
 
     /**

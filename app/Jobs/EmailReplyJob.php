@@ -119,22 +119,69 @@ class EmailReplyJob implements ShouldQueue
                 $htmlPartBody->setData(base64_encode($htmlBody));
                 $htmlPart->setBody($htmlPartBody);
 
-                // Create the full message with parts
+                // Include original attachments
+                $parts = $originalMessage->getPayload()->getParts();
+                $attachmentParts = [];
+
+                foreach ($parts as $part) {
+                    if ($part->getBody()->getAttachmentId()) {
+                        $attachmentId = $part->getBody()->getAttachmentId();
+                        $attachment = $gmail->users_messages_attachments->get('me', $messageId, $attachmentId);
+                        $attachmentParts[] = [
+                            'filename' => $part->getFilename(),
+                            'mimeType' => $part->getMimeType(),
+                            'data' => $attachment->getData()
+                        ];
+                    }
+                }
+
+                // // Create the full message with parts
+                // $rawMessage = "From: $from\r\n";
+                // $rawMessage .= "To: $to\r\n";
+                // $rawMessage .= "Subject: Re: $subject\r\n";
+                // $rawMessage .= "In-Reply-To: $messageIdHeader\r\n";
+                // $rawMessage .= "References: $messageIdHeader\r\n";
+                // $rawMessage .= "Content-Type: multipart/alternative; boundary=\"boundary\"\r\n";
+                // $rawMessage .= "\r\n--boundary\r\n";
+                // $rawMessage .= "Content-Type: text/plain; charset=UTF-8\r\n";
+                // $rawMessage .= "Content-Transfer-Encoding: base64\r\n\r\n";
+                // $rawMessage .= $textPartBody->getData();
+                // $rawMessage .= "\r\n--boundary\r\n";
+                // $rawMessage .= "Content-Type: text/html; charset=UTF-8\r\n";
+                // $rawMessage .= "Content-Transfer-Encoding: base64\r\n\r\n";
+                // $rawMessage .= $htmlPartBody->getData();
+                // $rawMessage .= "\r\n--boundary--";
+
+                // Create the full message with parts and attachments
                 $rawMessage = "From: $from\r\n";
                 $rawMessage .= "To: $to\r\n";
                 $rawMessage .= "Subject: Re: $subject\r\n";
                 $rawMessage .= "In-Reply-To: $messageIdHeader\r\n";
                 $rawMessage .= "References: $messageIdHeader\r\n";
-                $rawMessage .= "Content-Type: multipart/alternative; boundary=\"boundary\"\r\n";
+                $rawMessage .= "Content-Type: multipart/mixed; boundary=\"boundary\"\r\n";
                 $rawMessage .= "\r\n--boundary\r\n";
+                $rawMessage .= "Content-Type: multipart/alternative; boundary=\"alternative_boundary\"\r\n";
+                $rawMessage .= "\r\n--alternative_boundary\r\n";
                 $rawMessage .= "Content-Type: text/plain; charset=UTF-8\r\n";
                 $rawMessage .= "Content-Transfer-Encoding: base64\r\n\r\n";
                 $rawMessage .= $textPartBody->getData();
-                $rawMessage .= "\r\n--boundary\r\n";
+                $rawMessage .= "\r\n--alternative_boundary\r\n";
                 $rawMessage .= "Content-Type: text/html; charset=UTF-8\r\n";
                 $rawMessage .= "Content-Transfer-Encoding: base64\r\n\r\n";
                 $rawMessage .= $htmlPartBody->getData();
-                $rawMessage .= "\r\n--boundary--";
+                $rawMessage .= "\r\n--alternative_boundary--\r\n";
+
+                // Add attachments
+                foreach ($attachmentParts as $attachment) {
+                    $rawMessage .= "--boundary\r\n";
+                    $rawMessage .= "Content-Type: {$attachment['mimeType']}; name=\"{$attachment['filename']}\"\r\n";
+                    $rawMessage .= "Content-Disposition: attachment; filename=\"{$attachment['filename']}\"\r\n";
+                    $rawMessage .= "Content-Transfer-Encoding: base64\r\n\r\n";
+                    $rawMessage .= $attachment['data'] . "\r\n";
+                }
+
+                $rawMessage .= "--boundary--";
+
 
                 // Encode the message
                 $rawMessageEncode = base64_encode($rawMessage);
