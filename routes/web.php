@@ -39,7 +39,8 @@ Route::get('gmail/inbox/{id}', [GmailController::class, 'singleInboxMessage'])->
 Route::get('/gmail/sent/{pageId?}', [GmailController::class, 'sentAllMessage'])->name('sentAllMessage');
 Route::get('/gmail/sent-view/{id}', [GmailController::class, 'singleSentMessage'])->name('singleSentMessage');
 Route::get('/gmail/sent/reply/{messageId}', [GmailController::class, 'sentMessageReply'])->name('sentMessageReply');
-Route::post('/gmail/sent-message/{messageId}', [GmailController::class, 'messageSent'])->name('messageSent');
+Route::get('/gmail/compose', [GmailController::class, 'compose'])->name('compose');
+Route::post('/gmail/compose-sent', [GmailController::class, 'composeSent'])->name('composeSent');
 Route::get('check', [MailfileController::class, 'index'])->name('check');
 
 // Other Work All

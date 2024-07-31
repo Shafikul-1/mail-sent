@@ -115,6 +115,60 @@ class GmailController extends Controller
         }
     }
 
+    public function compose()
+    {
+        return view('gmail.compose');
+    }
+    public function composeSent(Request $request)
+    {
+        $Gtoken = Session::get('Gtoken');
+        $this->client->setAccessToken($Gtoken);
+
+        if ($this->client->isAccessTokenExpired()) {
+            $refreshToken = Session::get('google_refresh_token');
+            if ($refreshToken) {
+                $newToken = $this->client->fetchAccessTokenWithRefreshToken($refreshToken);
+                $this->client->setAccessToken($newToken);
+                Session::put('Gtoken', $newToken);
+                Log::info('New Access Token: ' . json_encode($newToken));
+            } else {
+                return redirect()->route('home')->with('msg', "Refresh token is missing.");
+            }
+        }
+
+        $service = new Gmail($this->client);
+        $email = $this->createEmail($request->input('to'), $request->input('subject'), $request->input('message'));
+
+        try {
+            $message = new Message();
+            $message->setRaw($email);
+
+            $service->users_messages->send('me', $message);
+            return redirect()->route('home')->with('msg', 'Email sent successfully');
+        } catch (Google_Service_Exception $e) {
+            Log::error('Error sending email: ' . $e->getMessage());
+            return back()->with('msg', 'Failed to send email');
+        }
+    }
+
+    private function createEmail($to, $subject, $messageText)
+    {
+        $boundary = uniqid(rand(), true);
+        $subject = "=?utf-8?B?" . base64_encode($subject) . "?=";
+
+        $rawMessage = "From: me\r\n";
+        $rawMessage .= "To: {$to}\r\n";
+        $rawMessage .= "Subject: {$subject}\r\n";
+        $rawMessage .= "MIME-Version: 1.0\r\n";
+        $rawMessage .= "Content-Type: multipart/alternative; boundary=\"{$boundary}\"\r\n\r\n";
+        $rawMessage .= "--{$boundary}\r\n";
+        $rawMessage .= "Content-Type: text/plain; charset=utf-8\r\n\r\n";
+        $rawMessage .= "{$messageText}\r\n";
+        $rawMessage .= "--{$boundary}--";
+
+        return rtrim(strtr(base64_encode($rawMessage), '+/', '-_'), '=');
+    }
+
     // $this->client->addScope('https://www.googleapis.com/auth/gmail.readonly');
     // $this->client->addScope('https://www.googleapis.com/auth/gmail.modify');
     // $this->client->addScope('https://www.googleapis.com/auth/gmail.send');
@@ -313,175 +367,175 @@ class GmailController extends Controller
     }
 
     // Sent Message All
-public function sentAllMessage($pageId = null)
-{
-    // Other function work
-    $getData = $this->sentMailAllData();
-    if ($getData == false) {
-        return false;
-    }
-    $pageAllData = [];
-    foreach ($getData['paginatedResults'] as $allData) {
-        if($pageId == null || $pageId == 0){
-            if($allData['page'] == 0){
+    public function sentAllMessage($pageId = null)
+    {
+        // Other function work
+        $getData = $this->sentMailAllData();
+        if ($getData == false) {
+            return false;
+        }
+        $pageAllData = [];
+        foreach ($getData['paginatedResults'] as $allData) {
+            if ($pageId == null || $pageId == 0) {
+                if ($allData['page'] == 0) {
+                    $pageAllData[] = $allData['threads'];
+                    break;
+                }
+            }
+
+            if ($allData['page'] == $pageId) {
                 $pageAllData[] = $allData['threads'];
                 break;
             }
         }
-        
-        if($allData['page'] == $pageId){
-            $pageAllData[] = $allData['threads'];
-            break;
+
+        $oneMessageId = [];
+        foreach ($pageAllData as $messageAllId) {
+            $oneMessageId = $messageAllId;
         }
-    }
+        // return $pageAllData;
+        // $uniqueMessageId = $getData['uniqueMessageId'];
 
-    $oneMessageId = [];
-    foreach ($pageAllData as $messageAllId) {
-        $oneMessageId = $messageAllId;
-    }
-    // return $pageAllData;
-    // $uniqueMessageId = $getData['uniqueMessageId'];
-    
-    // This fucntion work
-    $gmail = new Gmail($this->client);
-    try {
-        $filterAllData = [];
-        foreach ($oneMessageId as $messageId) {
-            $currentIdMessageCount = count($messageId);
-            $currentMessageId = $messageId[0];
-            $replaceStr = "$currentMessageId";
-            $messageDetails = $gmail->users_messages->get('me', $replaceStr);
-            $headers = $messageDetails->getPayload()->getHeaders();
+        // This fucntion work
+        $gmail = new Gmail($this->client);
+        try {
+            $filterAllData = [];
+            foreach ($oneMessageId as $messageId) {
+                $currentIdMessageCount = count($messageId);
+                $currentMessageId = $messageId[0];
+                $replaceStr = "$currentMessageId";
+                $messageDetails = $gmail->users_messages->get('me', $replaceStr);
+                $headers = $messageDetails->getPayload()->getHeaders();
 
-            // get other information 
-            $reciverEmail = '';
-            $subject = '';
-            $sentDate = '';
-            $messageContent = '';
-            foreach ($headers as $otherInfo) {
-                if ($otherInfo->name === 'To') {
-                    $reciverEmail = $otherInfo->value;
-                }
-                if ($otherInfo->name === 'Date') {
-                    $getDate = $otherInfo->value;
-                    $date = new DateTime($getDate);
-                    $sentDate = $date->format('l, d F Y \a\t h:i A');
-                }
-                if ($otherInfo->name === 'Subject') {
-                    $subject = $otherInfo->value;
-                }
-            }
-
-            // Get body data
-            $parts = $messageDetails->getPayload()->getParts();
-            if (is_null($parts)) {
-                $messageDetails->getPayload()->getBody()->getData();
-            } else {
-                foreach ($parts as $part) {
-                    if ($part->getmimeType() == 'text/plain' || $part->getmimeType() == 'text/html') {
-                        $messageContent = $part->getBody()->getData();
-                        break;
+                // get other information 
+                $reciverEmail = '';
+                $subject = '';
+                $sentDate = '';
+                $messageContent = '';
+                foreach ($headers as $otherInfo) {
+                    if ($otherInfo->name === 'To') {
+                        $reciverEmail = $otherInfo->value;
+                    }
+                    if ($otherInfo->name === 'Date') {
+                        $getDate = $otherInfo->value;
+                        $date = new DateTime($getDate);
+                        $sentDate = $date->format('l, d F Y \a\t h:i A');
+                    }
+                    if ($otherInfo->name === 'Subject') {
+                        $subject = $otherInfo->value;
                     }
                 }
-            }
 
-            // Search String only fast message body data
-            $messageContent = base64_decode(strtr($messageContent, '-_', '+/'));
-            $searchString = "wrote:";
-            if (strpos($messageContent, $searchString) !== false) {
-                $messageContent = strstr($messageContent, $searchString, true);
-                $searchOn = "On";
-                $messageContent = strstr($messageContent, $searchOn, true);
-            }
-
-            // big string sort
-            // $messageContent = htmlspecialchars_decode(strip_tags($messageContent)); //html tag skip
-            $messageContent = preg_replace('/\s+/', ' ', $messageContent);
-            $stringSort = explode(' ', trim($messageContent));
-            if (str_word_count($messageContent) >= 7) {
-                // Get the first 5 words
-                $okString = array_slice($stringSort, 0, 7);
-                $result = implode(' ', $okString);
-            } else {
-                $result = $messageContent;
-            }
-
-            // array push data
-            $totalData['id'] = $currentMessageId;
-            $totalData['reciverEmail'] = $reciverEmail;
-            $totalData['subject'] = $subject;
-            $totalData['sentDate'] = $sentDate;
-            $totalData['messageContent'] = $result;
-            $totalData['totalMessage'] = $currentIdMessageCount;
-            $filterAllData[] = $totalData;
-        }
-
-        // return [
-        //     'filterAllData' => $filterAllData,
-        //     'pageTokens' => $getData['pageTokens'],
-        // ];
-        return view('gmail.sent.sentMessages', ['filterAllData' => $filterAllData, 'pageTokens' => $getData['pageTokens']]);
-    } catch (\Throwable $th) {
-        return $th->getMessage();
-    }
-}
-
-// Sent message All page id fetch
-private function sentMailAllData()
-{
-    set_time_limit(120);
-    if ($this->checkGmailAccess()) {
-        $gmail = new Gmail($this->client);
-        $pageTokens = [];
-        $pageToken = null;
-        $allMessageId = [];
-
-        do {
-            $optParams = ['q' => 'is:sent'];
-            if ($pageToken) {
-                $optParams['pageToken'] = $pageToken;
-            }
-
-            $sentEmailData = $gmail->users_messages->listUsersMessages('me', $optParams);
-            $messages = $sentEmailData->getMessages();
-
-            // Process the messages and group by threadId
-            foreach ($messages as $message) {
-                $threadId = $message->threadId;
-                $messageId = $message->id;
-
-                if (!isset($allMessageId[$threadId])) {
-                    $allMessageId[$threadId] = [];
+                // Get body data
+                $parts = $messageDetails->getPayload()->getParts();
+                if (is_null($parts)) {
+                    $messageDetails->getPayload()->getBody()->getData();
+                } else {
+                    foreach ($parts as $part) {
+                        if ($part->getmimeType() == 'text/plain' || $part->getmimeType() == 'text/html') {
+                            $messageContent = $part->getBody()->getData();
+                            break;
+                        }
+                    }
                 }
 
-                $allMessageId[$threadId][] = $messageId;
+                // Search String only fast message body data
+                $messageContent = base64_decode(strtr($messageContent, '-_', '+/'));
+                $searchString = "wrote:";
+                if (strpos($messageContent, $searchString) !== false) {
+                    $messageContent = strstr($messageContent, $searchString, true);
+                    $searchOn = "On";
+                    $messageContent = strstr($messageContent, $searchOn, true);
+                }
+
+                // big string sort
+                // $messageContent = htmlspecialchars_decode(strip_tags($messageContent)); //html tag skip
+                $messageContent = preg_replace('/\s+/', ' ', $messageContent);
+                $stringSort = explode(' ', trim($messageContent));
+                if (str_word_count($messageContent) >= 7) {
+                    // Get the first 5 words
+                    $okString = array_slice($stringSort, 0, 7);
+                    $result = implode(' ', $okString);
+                } else {
+                    $result = $messageContent;
+                }
+
+                // array push data
+                $totalData['id'] = $currentMessageId;
+                $totalData['reciverEmail'] = $reciverEmail;
+                $totalData['subject'] = $subject;
+                $totalData['sentDate'] = $sentDate;
+                $totalData['messageContent'] = $result;
+                $totalData['totalMessage'] = $currentIdMessageCount;
+                $filterAllData[] = $totalData;
             }
 
-            // Get the next page token
-            $pageToken = $sentEmailData->getNextPageToken();
-        } while ($pageToken);
-
-        $page = [];
-        // Paginate the thread IDs
-        $threadIdPages = array_chunk(array_keys($allMessageId), 50);
-        $paginatedResults = [];
-
-        foreach ($threadIdPages as $index => $threadIds) {
-            $paginatedResults[] = [
-                'page' => $index,
-                'threads' => array_intersect_key($allMessageId, array_flip($threadIds)),
-            ];
-            $page[] = $index;
+            // return [
+            //     'filterAllData' => $filterAllData,
+            //     'pageTokens' => $getData['pageTokens'],
+            // ];
+            return view('gmail.sent.sentMessages', ['filterAllData' => $filterAllData, 'pageTokens' => $getData['pageTokens']]);
+        } catch (\Throwable $th) {
+            return $th->getMessage();
         }
-
-        return [
-            'paginatedResults' => $paginatedResults,
-            'pageTokens' => $page,
-        ];
-    } else {
-        return false;
     }
-}
+
+    // Sent message All page id fetch
+    private function sentMailAllData()
+    {
+        set_time_limit(120);
+        if ($this->checkGmailAccess()) {
+            $gmail = new Gmail($this->client);
+            $pageTokens = [];
+            $pageToken = null;
+            $allMessageId = [];
+
+            do {
+                $optParams = ['q' => 'is:sent'];
+                if ($pageToken) {
+                    $optParams['pageToken'] = $pageToken;
+                }
+
+                $sentEmailData = $gmail->users_messages->listUsersMessages('me', $optParams);
+                $messages = $sentEmailData->getMessages();
+
+                // Process the messages and group by threadId
+                foreach ($messages as $message) {
+                    $threadId = $message->threadId;
+                    $messageId = $message->id;
+
+                    if (!isset($allMessageId[$threadId])) {
+                        $allMessageId[$threadId] = [];
+                    }
+
+                    $allMessageId[$threadId][] = $messageId;
+                }
+
+                // Get the next page token
+                $pageToken = $sentEmailData->getNextPageToken();
+            } while ($pageToken);
+
+            $page = [];
+            // Paginate the thread IDs
+            $threadIdPages = array_chunk(array_keys($allMessageId), 50);
+            $paginatedResults = [];
+
+            foreach ($threadIdPages as $index => $threadIds) {
+                $paginatedResults[] = [
+                    'page' => $index,
+                    'threads' => array_intersect_key($allMessageId, array_flip($threadIds)),
+                ];
+                $page[] = $index;
+            }
+
+            return [
+                'paginatedResults' => $paginatedResults,
+                'pageTokens' => $page,
+            ];
+        } else {
+            return false;
+        }
+    }
     // Sent Single message View
     public function singleSentMessage($messageId)
     {
