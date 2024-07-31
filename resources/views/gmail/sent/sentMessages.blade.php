@@ -62,13 +62,10 @@
             <div
                 class=" AllPage hidden z-50 absolute top-[-3rem] right-[7rem] bg-blue-500 shadow-lg shadow-blue-500/50 p-2 rounded-md ">
                 <div class="flex flex-col w-[7rem] h-[13rem] overflow-x-auto">
-                    <a href="{{ route('sentAllMessage') }}"
-                        class="{{ $paramId == '' ? 'bg-cyan-500 shadow-lg shadow-cyan-500/50' : 'bg-indigo-500 shadow-lg shadow-indigo-500/50' }} font-bold text-md px-4 capitalize my-2 py-1 rounded-md">Page
-                        0</a>
-                    @foreach ($pageTokens as $pageNumber => $pageToken)
+                    @foreach ($pageTokens as $pageToken)
                         <a href="{{ route('sentAllMessage', $pageToken) }}"
                             class="{{ $paramId == $pageToken ? 'bg-cyan-500 shadow-lg shadow-cyan-500/50' : 'bg-indigo-500 shadow-lg shadow-indigo-500/50' }} font-bold text-md px-4 capitalize my-2 py-1 rounded-md">page
-                            {{ $pageNumber + 1 }} </a>
+                            {{ $pageToken + 1 }} </a>
                     @endforeach
                 </div>
             </div>

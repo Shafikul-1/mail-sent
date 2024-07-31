@@ -27,7 +27,7 @@ class GmailController extends Controller
     {
         $this->client = new Client();
         $this->client->setApplicationName('My Project');
-        $this->client->setAuthConfig(storage_path('app/comnovaellieph05.json'));
+        $this->client->setAuthConfig(storage_path('app/comshafikul.json'));
         $this->client->addScope([
             Gmail::MAIL_GOOGLE_COM, // General Gmail access scope
             Gmail::GMAIL_READONLY,
@@ -313,153 +313,175 @@ class GmailController extends Controller
     }
 
     // Sent Message All
-    public function sentAllMessage($pageId = null)
-    {
-        // Other function work
-        $getData = $this->sentMailAllData($pageId);
-        if ($getData == false) {
-            return false;
+public function sentAllMessage($pageId = null)
+{
+    // Other function work
+    $getData = $this->sentMailAllData();
+    if ($getData == false) {
+        return false;
+    }
+    $pageAllData = [];
+    foreach ($getData['paginatedResults'] as $allData) {
+        if($pageId == null || $pageId == 0){
+            if($allData['page'] == 0){
+                $pageAllData[] = $allData['threads'];
+                break;
+            }
+        }
+        
+        if($allData['page'] == $pageId){
+            $pageAllData[] = $allData['threads'];
+            break;
+        }
+    }
+
+    $oneMessageId = [];
+    foreach ($pageAllData as $messageAllId) {
+        $oneMessageId = $messageAllId;
+    }
+    // return $pageAllData;
+    // $uniqueMessageId = $getData['uniqueMessageId'];
+    
+    // This fucntion work
+    $gmail = new Gmail($this->client);
+    try {
+        $filterAllData = [];
+        foreach ($oneMessageId as $messageId) {
+            $currentIdMessageCount = count($messageId);
+            $currentMessageId = $messageId[0];
+            $replaceStr = "$currentMessageId";
+            $messageDetails = $gmail->users_messages->get('me', $replaceStr);
+            $headers = $messageDetails->getPayload()->getHeaders();
+
+            // get other information 
+            $reciverEmail = '';
+            $subject = '';
+            $sentDate = '';
+            $messageContent = '';
+            foreach ($headers as $otherInfo) {
+                if ($otherInfo->name === 'To') {
+                    $reciverEmail = $otherInfo->value;
+                }
+                if ($otherInfo->name === 'Date') {
+                    $getDate = $otherInfo->value;
+                    $date = new DateTime($getDate);
+                    $sentDate = $date->format('l, d F Y \a\t h:i A');
+                }
+                if ($otherInfo->name === 'Subject') {
+                    $subject = $otherInfo->value;
+                }
+            }
+
+            // Get body data
+            $parts = $messageDetails->getPayload()->getParts();
+            if (is_null($parts)) {
+                $messageDetails->getPayload()->getBody()->getData();
+            } else {
+                foreach ($parts as $part) {
+                    if ($part->getmimeType() == 'text/plain' || $part->getmimeType() == 'text/html') {
+                        $messageContent = $part->getBody()->getData();
+                        break;
+                    }
+                }
+            }
+
+            // Search String only fast message body data
+            $messageContent = base64_decode(strtr($messageContent, '-_', '+/'));
+            $searchString = "wrote:";
+            if (strpos($messageContent, $searchString) !== false) {
+                $messageContent = strstr($messageContent, $searchString, true);
+                $searchOn = "On";
+                $messageContent = strstr($messageContent, $searchOn, true);
+            }
+
+            // big string sort
+            // $messageContent = htmlspecialchars_decode(strip_tags($messageContent)); //html tag skip
+            $messageContent = preg_replace('/\s+/', ' ', $messageContent);
+            $stringSort = explode(' ', trim($messageContent));
+            if (str_word_count($messageContent) >= 7) {
+                // Get the first 5 words
+                $okString = array_slice($stringSort, 0, 7);
+                $result = implode(' ', $okString);
+            } else {
+                $result = $messageContent;
+            }
+
+            // array push data
+            $totalData['id'] = $currentMessageId;
+            $totalData['reciverEmail'] = $reciverEmail;
+            $totalData['subject'] = $subject;
+            $totalData['sentDate'] = $sentDate;
+            $totalData['messageContent'] = $result;
+            $totalData['totalMessage'] = $currentIdMessageCount;
+            $filterAllData[] = $totalData;
         }
 
+        // return [
+        //     'filterAllData' => $filterAllData,
+        //     'pageTokens' => $getData['pageTokens'],
+        // ];
+        return view('gmail.sent.sentMessages', ['filterAllData' => $filterAllData, 'pageTokens' => $getData['pageTokens']]);
+    } catch (\Throwable $th) {
+        return $th->getMessage();
+    }
+}
+
+// Sent message All page id fetch
+private function sentMailAllData()
+{
+    set_time_limit(120);
+    if ($this->checkGmailAccess()) {
         $gmail = new Gmail($this->client);
-        $uniqueMessageId = $getData['uniqueMessageId'];
+        $pageTokens = [];
+        $pageToken = null;
+        $allMessageId = [];
 
-        // This fucntion work
-        try {
-            $filterAllData = [];
-            foreach ($uniqueMessageId as $messageId) {
-                $currentIdMessageCount = count($messageId);
-                $currentMessageId = $messageId[0];
-                $replaceStr = "$currentMessageId";
-                $messageDetails = $gmail->users_messages->get('me', $replaceStr);
-                $headers = $messageDetails->getPayload()->getHeaders();
-
-                // get other information 
-                $reciverEmail = '';
-                $subject = '';
-                $sentDate = '';
-                $messageContent = '';
-                foreach ($headers as $otherInfo) {
-                    if ($otherInfo->name === 'To') {
-                        $reciverEmail = $otherInfo->value;
-                    }
-                    if ($otherInfo->name === 'Date') {
-                        $getDate = $otherInfo->value;
-                        $date = new DateTime($getDate);
-                        $sentDate = $date->format('l, d F Y \a\t h:i A');
-                    }
-                    if ($otherInfo->name === 'Subject') {
-                        $subject = $otherInfo->value;
-                    }
-                }
-
-                // Get body data
-                $parts = $messageDetails->getPayload()->getParts();
-                if (is_null($parts)) {
-                    $messageDetails->getPayload()->getBody()->getData();
-                } else {
-                    foreach ($parts as $part) {
-                        if ($part->getmimeType() == 'text/plain' || $part->getmimeType() == 'text/html') {
-                            $messageContent = $part->getBody()->getData();
-                            break;
-                        }
-                    }
-                }
-
-                // Search String only fast message body data
-                $messageContent = base64_decode(strtr($messageContent, '-_', '+/'));
-                $searchString = "wrote:";
-                if (strpos($messageContent, $searchString) !== false) {
-                    $messageContent = strstr($messageContent, $searchString, true);
-                    $searchOn = "On";
-                    $messageContent = strstr($messageContent, $searchOn, true);
-                }
-
-                // big string sort
-                // $messageContent = htmlspecialchars_decode(strip_tags($messageContent)); //html tag skip
-                $messageContent = preg_replace('/\s+/', ' ', $messageContent);
-                $stringSort = explode(' ', trim($messageContent));
-                if (str_word_count($messageContent) >= 7) {
-                    // Get the first 5 words
-                    $okString = array_slice($stringSort, 0, 7);
-                    $result = implode(' ', $okString);
-                } else {
-                    $result = $messageContent;
-                }
-
-                // array push data
-                $totalData['id'] = $currentMessageId;
-                $totalData['reciverEmail'] = $reciverEmail;
-                $totalData['subject'] = $subject;
-                $totalData['sentDate'] = $sentDate;
-                $totalData['messageContent'] = $result;
-                $totalData['totalMessage'] = $currentIdMessageCount;
-                $filterAllData[] = $totalData;
-            }
-
-            // return [
-            //     'filterAllData' => $filterAllData,
-            //     'pageTokens' => $getData['pageTokens'],
-            // ];
-            return view('gmail.sent.sentMessages', ['filterAllData' => $filterAllData, 'pageTokens' => $getData['pageTokens']]);
-        } catch (\Throwable $th) {
-            return $th->getMessage();
-        }
-    }
-
-    // Sent message All page id fetch
-    private function sentMailAllData($pageId)
-    {
-        set_time_limit(120);
-        if ($this->checkGmailAccess()) {
-            $gmail = new Gmail($this->client);
-            $pageTokens = [];
-            $pageToken = null;
-
-            do {
-                $optParams = ['q' => 'is:sent'];
-                if ($pageToken) {
-                    $optParams['pageToken'] = $pageToken;
-                }
-
-                $sentEmailData = $gmail->users_messages->listUsersMessages('me', $optParams);
-                $messages = $sentEmailData->getMessages();
-
-                // Store the current page token
-                if ($pageToken) {
-                    $pageTokens[] = $pageToken;
-                }
-
-                // Get the next page token
-                $pageToken = $sentEmailData->getNextPageToken();
-            } while ($pageToken);
-
-            // Store the final page token if there is one
+        do {
+            $optParams = ['q' => 'is:sent'];
             if ($pageToken) {
-                $pageTokens[] = $pageToken;
+                $optParams['pageToken'] = $pageToken;
             }
 
-            // Get All Email Message IDs
-            $sentMessageIds = $gmail->users_messages->listUsersMessages('me', [
-                'q' => 'is:sent',
-                'pageToken' => $pageId ?: null
-            ]);
+            $sentEmailData = $gmail->users_messages->listUsersMessages('me', $optParams);
+            $messages = $sentEmailData->getMessages();
 
-            $sentMessage = $sentMessageIds->getMessages();
-            $allMessageId = [];
-            foreach ($sentMessage as $messageAllId) {
-                $allMessageId[$messageAllId->threadId][] = $messageAllId->id;
+            // Process the messages and group by threadId
+            foreach ($messages as $message) {
+                $threadId = $message->threadId;
+                $messageId = $message->id;
+
+                if (!isset($allMessageId[$threadId])) {
+                    $allMessageId[$threadId] = [];
+                }
+
+                $allMessageId[$threadId][] = $messageId;
             }
 
-            return [
-                'uniqueMessageId' => $allMessageId,
-                'pageTokens' => $pageTokens,
+            // Get the next page token
+            $pageToken = $sentEmailData->getNextPageToken();
+        } while ($pageToken);
+
+        $page = [];
+        // Paginate the thread IDs
+        $threadIdPages = array_chunk(array_keys($allMessageId), 50);
+        $paginatedResults = [];
+
+        foreach ($threadIdPages as $index => $threadIds) {
+            $paginatedResults[] = [
+                'page' => $index,
+                'threads' => array_intersect_key($allMessageId, array_flip($threadIds)),
             ];
-        } else {
-            return false;
-        };
-    }
+            $page[] = $index;
+        }
 
+        return [
+            'paginatedResults' => $paginatedResults,
+            'pageTokens' => $page,
+        ];
+    } else {
+        return false;
+    }
+}
     // Sent Single message View
     public function singleSentMessage($messageId)
     {
