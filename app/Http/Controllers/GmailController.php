@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Google\Service\Gmail\MessagePart;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Storage;
 use Google\Service\Gmail\MessagePartBody;
 
 class GmailController extends Controller
@@ -136,22 +137,74 @@ class GmailController extends Controller
             }
         }
 
+        // $service = new Gmail($this->client);
+        // $attachmentPath = null;
+        // if ($request->hasFile('attachment')) {
+        //     $attachment = $request->file('attachment');
+        //     $attachmentPath = $attachment->store('attachments', 'public'); // Store the file in the 'attachments' directory within the 'public' disk
+        // }
+
+        // // $email = $this->createEmail($request->input('to'), $request->input('subject'), $request->input('message'));
+        // $email = $this->createEmailWithAttachment($request->input('to'), $request->input('subject'), $request->input('message'), $attachmentPath);
+        // // try {
+        // //     $message = new Message();
+        // //     $message->setRaw($email);
+
+        // //     $service->users_messages->send('me', $message);
+        // //     return redirect()->route('home')->with('msg', 'Email sent successfully');
+        // // } catch (Google_Service_Exception $e) {
+        // //     Log::error('Error sending email: ' . $e->getMessage());
+        // //     return back()->with('msg', 'Failed to send email');
+        // // }
+
+        // try {
+        //     $message = new Message();
+        //     $message->setRaw($email);
+
+        //     $service->users_messages->send('me', $message);
+
+        //     if ($attachmentPath) {
+        //         Storage::disk('public')->delete($attachmentPath); // Delete the file after sending the email
+        //     }
+
+        //     return redirect()->route('home')->with('msg', 'Email sent successfully');
+        // } catch (Google_Service_Exception $e) {
+        //     Log::error('Error sending email: ' . $e->getMessage());
+        //     if ($attachmentPath) {
+        //         Storage::disk('public')->delete($attachmentPath); // Ensure the file is deleted even if there's an error
+        //     }
+        //     return back()->with('error', 'Failed to send email');
+        // }
         $service = new Gmail($this->client);
-        $email = $this->createEmail($request->input('to'), $request->input('subject'), $request->input('message'));
+        $attachmentPaths = [];
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments') as $attachment) {
+                $attachmentPaths[] = $attachment->store('attachments', 'public'); // Store the files in the 'attachments' directory within the 'public' disk
+            }
+        }
+
+        $email = $this->createEmailWithAttachments($request->input('to'), $request->input('subject'), $request->input('message'), $attachmentPaths);
 
         try {
             $message = new Message();
             $message->setRaw($email);
 
             $service->users_messages->send('me', $message);
+
+            foreach ($attachmentPaths as $path) {
+                Storage::disk('public')->delete($path); // Delete the files after sending the email
+            }
             return redirect()->route('home')->with('msg', 'Email sent successfully');
         } catch (Google_Service_Exception $e) {
             Log::error('Error sending email: ' . $e->getMessage());
-            return back()->with('msg', 'Failed to send email');
+            foreach ($attachmentPaths as $path) {
+                Storage::disk('public')->delete($path); // Ensure the files are deleted even if there's an error
+            }
+            return back()->with('error', 'Failed to send email');
         }
     }
 
-    private function createEmail($to, $subject, $messageText)
+    private function createEmailWithAttachments($to, $subject, $messageText, $attachmentPaths)
     {
         $boundary = uniqid(rand(), true);
         $subject = "=?utf-8?B?" . base64_encode($subject) . "?=";
@@ -160,14 +213,88 @@ class GmailController extends Controller
         $rawMessage .= "To: {$to}\r\n";
         $rawMessage .= "Subject: {$subject}\r\n";
         $rawMessage .= "MIME-Version: 1.0\r\n";
-        $rawMessage .= "Content-Type: multipart/alternative; boundary=\"{$boundary}\"\r\n\r\n";
+        $rawMessage .= "Content-Type: multipart/mixed; boundary=\"{$boundary}\"\r\n\r\n";
+
+        // Plain text message
         $rawMessage .= "--{$boundary}\r\n";
         $rawMessage .= "Content-Type: text/plain; charset=utf-8\r\n\r\n";
         $rawMessage .= "{$messageText}\r\n";
+
+        foreach ($attachmentPaths as $path) {
+            $filePath = storage_path("app/public/{$path}");
+            $fileName = basename($filePath);
+            $fileData = file_get_contents($filePath);
+            $base64File = base64_encode($fileData);
+            $mimeType = mime_content_type($filePath);
+
+            // Attachment
+            $rawMessage .= "--{$boundary}\r\n";
+            $rawMessage .= "Content-Type: {$mimeType}; name=\"{$fileName}\"\r\n";
+            $rawMessage .= "Content-Disposition: attachment; filename=\"{$fileName}\"\r\n";
+            $rawMessage .= "Content-Transfer-Encoding: base64\r\n\r\n";
+            $rawMessage .= chunk_split($base64File, 76, "\r\n");
+        }
+
         $rawMessage .= "--{$boundary}--";
 
         return rtrim(strtr(base64_encode($rawMessage), '+/', '-_'), '=');
     }
+
+    // private function createEmailWithAttachment($to, $subject, $messageText, $attachmentPath)
+    // {
+    //     $boundary = uniqid(rand(), true);
+    //     $subject = "=?utf-8?B?" . base64_encode($subject) . "?=";
+
+    //     $rawMessage = "From: me\r\n";
+    //     $rawMessage .= "To: {$to}\r\n";
+    //     $rawMessage .= "Subject: {$subject}\r\n";
+    //     $rawMessage .= "MIME-Version: 1.0\r\n";
+    //     $rawMessage .= "Content-Type: multipart/mixed; boundary=\"{$boundary}\"\r\n\r\n";
+
+    //     // Plain text message
+    //     $rawMessage .= "--{$boundary}\r\n";
+    //     $rawMessage .= "Content-Type: text/plain; charset=utf-8\r\n\r\n";
+    //     $rawMessage .= "{$messageText}\r\n";
+
+    //     if ($attachmentPath) {
+    //         $filePath = storage_path("app/public/{$attachmentPath}");
+    //         $fileName = basename($filePath);
+    //         $fileData = file_get_contents($filePath);
+    //         $base64File = base64_encode($fileData);
+    //         $mimeType = mime_content_type($filePath);
+
+    //         // Attachment
+    //         $rawMessage .= "--{$boundary}\r\n";
+    //         $rawMessage .= "Content-Type: {$mimeType}; name=\"{$fileName}\"\r\n";
+    //         $rawMessage .= "Content-Disposition: attachment; filename=\"{$fileName}\"\r\n";
+    //         $rawMessage .= "Content-Transfer-Encoding: base64\r\n\r\n";
+    //         $rawMessage .= chunk_split($base64File, 76, "\r\n");
+    //     }
+
+    //     $rawMessage .= "--{$boundary}--";
+
+    //     return rtrim(strtr(base64_encode($rawMessage), '+/', '-_'), '=');
+    // }
+
+
+    // private function createEmail($to, $subject, $messageText)
+    // {
+    //     $boundary = uniqid(rand(), true);
+    //     $subject = "=?utf-8?B?" . base64_encode($subject) . "?=";
+
+    //     $rawMessage = "From: me\r\n";
+    //     $rawMessage .= "To: {$to}\r\n";
+    //     $rawMessage .= "Subject: {$subject}\r\n";
+    //     $rawMessage .= "MIME-Version: 1.0\r\n";
+    //     $rawMessage .= "Content-Type: multipart/alternative; boundary=\"{$boundary}\"\r\n\r\n";
+    //     $rawMessage .= "--{$boundary}\r\n";
+    //     $rawMessage .= "Content-Type: text/plain; charset=utf-8\r\n\r\n";
+    //     $rawMessage .= "{$messageText}\r\n";
+    //     $rawMessage .= "--{$boundary}--";
+
+    //     return rtrim(strtr(base64_encode($rawMessage), '+/', '-_'), '=');
+    // }
+
 
     // $this->client->addScope('https://www.googleapis.com/auth/gmail.readonly');
     // $this->client->addScope('https://www.googleapis.com/auth/gmail.modify');
