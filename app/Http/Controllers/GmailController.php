@@ -8,6 +8,7 @@ use DOMDocument;
 use Google\Client;
 use App\Models\User;
 use Google\Service\Gmail;
+use App\Models\MailSender;
 use Google\Service\Oauth2;
 use App\Models\GoogleToken;
 use Illuminate\Http\Request;
@@ -23,7 +24,7 @@ use Google\Service\Gmail\MessagePartBody;
 class GmailController extends Controller
 {
     private $client;
-    // SEt Client
+
     public function __construct()
     {
         $this->client = new Client();
@@ -43,12 +44,14 @@ class GmailController extends Controller
         $this->client->setIncludeGrantedScopes(true);
     }
 
+    // Google Redirect
     public function redirectToGoogle()
     {
         $authUrl = $this->client->createAuthUrl();
         return redirect()->away($authUrl);
     }
 
+    // Handle Google
     public function handleGoogleCallback(Request $request)
     {
         $code = $request->input('code');
@@ -116,12 +119,63 @@ class GmailController extends Controller
         }
     }
 
+    // Compose Email
     public function compose()
     {
         return view('gmail.compose');
     }
+
+    
+    // public function sentding()
+    // {
+    //     $uerId = Auth::user()->id;
+
+    //     $dbgoogleToken = GoogleToken::where('user_id', $uerId)->first();
+    //     if (!$dbgoogleToken) {
+    //         return false;
+    //     }
+
+    //     $tokenData = json_decode($dbgoogleToken->access_token, true);
+    //     $this->client->setAccessToken($tokenData);
+
+    //     // Check if token has expired
+    //     if ($this->client->isAccessTokenExpired()) {
+    //         $this->client->fetchAccessTokenWithRefreshToken($this->client->getRefreshToken());
+    //         $newToken = json_encode($this->client->getAccessToken());
+    //         GoogleToken::where('user_id', $uerId)->update(['access_token' => $newToken]);
+    //         $tokenData = $this->client->getAccessToken(); // Update tokenData after refresh
+    //     }
+    //     $currentTime = now()->format('Y-m-d H:i:s');
+    //     $currentAllData = MailSender::whereRaw("status = ? AND sendingTime <= ?", [0, $currentTime])->get();
+    //     foreach ($currentAllData as $data) {
+    //         try {
+    //             $service = new Gmail($this->client);
+    //             $message = new Message();
+    //             $message->setRaw($data->email_content);
+    //             $service->users_messages->send('me', $message);
+
+    //             MailSender::where('id', $data->id)->delete();
+    //             echo "successful sent";
+    //         } catch (Google_Service_Exception $e) {
+    //             Log::error('Error sending email: ' . $e->getMessage());
+    //             echo "FAiled sent";
+    //         }
+    //     }
+    // }
+
+
+    // Compose Email Sent
     public function composeSent(Request $request)
     {
+        // Validate the request
+        $validatedData = $request->validate([
+            'to' => 'required',
+            'subject' => 'required',
+            // 'htmlFormat' => 'required',
+            'sendingTime' => 'required|numeric',
+            'attachments.*' => 'file|mimes:jpg,jpeg,png,pdf,doc,docx,xls,xlsx|max:2048'
+        ]);
+        // return $request->to;
         $Gtoken = Session::get('Gtoken');
         $this->client->setAccessToken($Gtoken);
 
@@ -137,79 +191,55 @@ class GmailController extends Controller
             }
         }
 
+        $service = new Gmail($this->client);
+        $attachmentPaths = [];
+        if ($request->file('attachments')) {
+            foreach ($request->file('attachments') as $key => $value) {
+                $originalName = pathinfo($value->getClientOriginalName(), PATHINFO_FILENAME) . $value->getClientOriginalExtension();
+                $path = $value->storeAs('attachments', $originalName, 'public');
+                array_push($attachmentPaths, $path);
+            }
+        }
+
+        // return $attachmentPaths;
+        $user_id = Auth::user()->id;
+        $allMails = explode(' ', $request->to);
+        $intervalMinutes = $request->sendingTime;
+        foreach ($allMails as $client_mail) {
+            $currentTime = now();
+            $email = $this->createEmailWithAttachments($client_mail, $request->input('subject'), $request->input('message'), $attachmentPaths);
+            MailSender::create([
+                'client_email' => $client_mail,
+                'user_id' => $user_id,
+                'sendingTime' => $currentTime->addMinutes($intervalMinutes)->format('Y-m-d H:i:s'),
+                'status' => false,
+                'email_content' => $email,
+            ]);
+            $intervalMinutes += $request->sendingTime;
+        }
+        return redirect()->route('home')->with('msg', "mail sending pending, save database");
+    }
+  // try {
         // $service = new Gmail($this->client);
-        // $attachmentPath = null;
-        // if ($request->hasFile('attachment')) {
-        //     $attachment = $request->file('attachment');
-        //     $attachmentPath = $attachment->store('attachments', 'public'); // Store the file in the 'attachments' directory within the 'public' disk
-        // }
-
-        // // $email = $this->createEmail($request->input('to'), $request->input('subject'), $request->input('message'));
-        // $email = $this->createEmailWithAttachment($request->input('to'), $request->input('subject'), $request->input('message'), $attachmentPath);
-        // // try {
-        // //     $message = new Message();
-        // //     $message->setRaw($email);
-
-        // //     $service->users_messages->send('me', $message);
-        // //     return redirect()->route('home')->with('msg', 'Email sent successfully');
-        // // } catch (Google_Service_Exception $e) {
-        // //     Log::error('Error sending email: ' . $e->getMessage());
-        // //     return back()->with('msg', 'Failed to send email');
-        // // }
-
-        // try {
         //     $message = new Message();
         //     $message->setRaw($email);
-
         //     $service->users_messages->send('me', $message);
-
-        //     if ($attachmentPath) {
-        //         Storage::disk('public')->delete($attachmentPath); // Delete the file after sending the email
-        //     }
 
         //     return redirect()->route('home')->with('msg', 'Email sent successfully');
         // } catch (Google_Service_Exception $e) {
         //     Log::error('Error sending email: ' . $e->getMessage());
-        //     if ($attachmentPath) {
-        //         Storage::disk('public')->delete($attachmentPath); // Ensure the file is deleted even if there's an error
-        //     }
         //     return back()->with('error', 'Failed to send email');
         // }
-        $service = new Gmail($this->client);
-        $attachmentPaths = [];
-        if ($request->hasFile('attachments')) {
-            foreach ($request->file('attachments') as $attachment) {
-                $attachmentPaths[] = $attachment->store('attachments', 'public'); // Store the files in the 'attachments' directory within the 'public' disk
-            }
-        }
-
-        $email = $this->createEmailWithAttachments($request->input('to'), $request->input('subject'), $request->input('message'), $attachmentPaths);
-
-        try {
-            $message = new Message();
-            $message->setRaw($email);
-
-            $service->users_messages->send('me', $message);
-
-            foreach ($attachmentPaths as $path) {
-                Storage::disk('public')->delete($path); // Delete the files after sending the email
-            }
-            return redirect()->route('home')->with('msg', 'Email sent successfully');
-        } catch (Google_Service_Exception $e) {
-            Log::error('Error sending email: ' . $e->getMessage());
-            foreach ($attachmentPaths as $path) {
-                Storage::disk('public')->delete($path); // Ensure the files are deleted even if there's an error
-            }
-            return back()->with('error', 'Failed to send email');
-        }
-    }
-
+    // Compose Email Privte FN
     private function createEmailWithAttachments($to, $subject, $messageText, $attachmentPaths)
     {
         $boundary = uniqid(rand(), true);
         $subject = "=?utf-8?B?" . base64_encode($subject) . "?=";
+        $fromName = Auth::user()->name;
+        $fromEmail = Auth::user()->email;
+        $from = "=?utf-8?B?" . base64_encode($fromName) . "?= <{$fromEmail}>";
 
-        $rawMessage = "From: me\r\n";
+        $rawMessage = "From: {$from}\r\n";
         $rawMessage .= "To: {$to}\r\n";
         $rawMessage .= "Subject: {$subject}\r\n";
         $rawMessage .= "MIME-Version: 1.0\r\n";
@@ -217,11 +247,14 @@ class GmailController extends Controller
 
         // Plain text message
         $rawMessage .= "--{$boundary}\r\n";
-        $rawMessage .= "Content-Type: text/plain; charset=utf-8\r\n\r\n";
+        $rawMessage .= "Content-Type: text/html; charset=utf-8\r\n\r\n";
         $rawMessage .= "{$messageText}\r\n";
 
         foreach ($attachmentPaths as $path) {
             $filePath = storage_path("app/public/{$path}");
+            if (!file_exists($filePath)) {
+                continue; // Skip if the file doesn't exist
+            }
             $fileName = basename($filePath);
             $fileData = file_get_contents($filePath);
             $base64File = base64_encode($fileData);
@@ -236,215 +269,12 @@ class GmailController extends Controller
         }
 
         $rawMessage .= "--{$boundary}--";
+        return $rawMessage;
 
         return rtrim(strtr(base64_encode($rawMessage), '+/', '-_'), '=');
     }
 
-    // private function createEmailWithAttachment($to, $subject, $messageText, $attachmentPath)
-    // {
-    //     $boundary = uniqid(rand(), true);
-    //     $subject = "=?utf-8?B?" . base64_encode($subject) . "?=";
-
-    //     $rawMessage = "From: me\r\n";
-    //     $rawMessage .= "To: {$to}\r\n";
-    //     $rawMessage .= "Subject: {$subject}\r\n";
-    //     $rawMessage .= "MIME-Version: 1.0\r\n";
-    //     $rawMessage .= "Content-Type: multipart/mixed; boundary=\"{$boundary}\"\r\n\r\n";
-
-    //     // Plain text message
-    //     $rawMessage .= "--{$boundary}\r\n";
-    //     $rawMessage .= "Content-Type: text/plain; charset=utf-8\r\n\r\n";
-    //     $rawMessage .= "{$messageText}\r\n";
-
-    //     if ($attachmentPath) {
-    //         $filePath = storage_path("app/public/{$attachmentPath}");
-    //         $fileName = basename($filePath);
-    //         $fileData = file_get_contents($filePath);
-    //         $base64File = base64_encode($fileData);
-    //         $mimeType = mime_content_type($filePath);
-
-    //         // Attachment
-    //         $rawMessage .= "--{$boundary}\r\n";
-    //         $rawMessage .= "Content-Type: {$mimeType}; name=\"{$fileName}\"\r\n";
-    //         $rawMessage .= "Content-Disposition: attachment; filename=\"{$fileName}\"\r\n";
-    //         $rawMessage .= "Content-Transfer-Encoding: base64\r\n\r\n";
-    //         $rawMessage .= chunk_split($base64File, 76, "\r\n");
-    //     }
-
-    //     $rawMessage .= "--{$boundary}--";
-
-    //     return rtrim(strtr(base64_encode($rawMessage), '+/', '-_'), '=');
-    // }
-
-
-    // private function createEmail($to, $subject, $messageText)
-    // {
-    //     $boundary = uniqid(rand(), true);
-    //     $subject = "=?utf-8?B?" . base64_encode($subject) . "?=";
-
-    //     $rawMessage = "From: me\r\n";
-    //     $rawMessage .= "To: {$to}\r\n";
-    //     $rawMessage .= "Subject: {$subject}\r\n";
-    //     $rawMessage .= "MIME-Version: 1.0\r\n";
-    //     $rawMessage .= "Content-Type: multipart/alternative; boundary=\"{$boundary}\"\r\n\r\n";
-    //     $rawMessage .= "--{$boundary}\r\n";
-    //     $rawMessage .= "Content-Type: text/plain; charset=utf-8\r\n\r\n";
-    //     $rawMessage .= "{$messageText}\r\n";
-    //     $rawMessage .= "--{$boundary}--";
-
-    //     return rtrim(strtr(base64_encode($rawMessage), '+/', '-_'), '=');
-    // }
-
-
-    // $this->client->addScope('https://www.googleapis.com/auth/gmail.readonly');
-    // $this->client->addScope('https://www.googleapis.com/auth/gmail.modify');
-    // $this->client->addScope('https://www.googleapis.com/auth/gmail.send');
-    // $this->client->setRedirectUri('http://localhost:8000/gmail/callback');
-    // $this->client->setScopes(
-    //     [
-    //         \Google\Service\Oauth2::USERINFO_PROFILE,
-    //         \Google\Service\Oauth2::USERINFO_EMAIL,
-    //         \Google\Service\Oauth2::OPENID,
-    //     ]
-    // );
-
-
-    // Authentecation All Handle code
-    // public function handleGoogleCallback(Request $request)
-    // {
-    //     $code = $request->input('code');
-    //     if (empty($code)) {
-    //         return redirect()->route('home')->with('msg', "Code is missing");
-    //     }
-
-    //     $this->client->setRedirectUri(route('handleGoogleCallback'));
-
-    //     try {
-    //         $token = $this->client->fetchAccessTokenWithAuthCode($code);
-    //         if (isset($token['error'])) {
-    //             return redirect()->route('home')->with('msg', "Error: " . $token['error']);
-    //         }
-
-    //         // Save the refresh token if it's available
-    //         if (isset($token['refresh_token'])) {
-    //             Session::put('google_refresh_token', $token['refresh_token']);
-    //         }
-
-    //         // Set the access token
-    //         $this->client->setAccessToken($token['access_token']);
-
-    //         if ($this->client->isAccessTokenExpired()) {
-    //             $refreshToken = Session::get('google_refresh_token');
-    //             if ($refreshToken) {
-    //                 $this->client->fetchAccessTokenWithRefreshToken($refreshToken);
-    //                 // Update or store the new access token
-    //                 $newAccessToken = $this->client->getAccessToken();
-    //                 $this->client->setAccessToken($newAccessToken);
-    //             } else {
-    //                 return redirect()->route('home')->with('msg', "Refresh token is missing.");
-    //             }
-    //         }
-
-    //         // Fetch user information
-    //         $google_oauth = new Oauth2($this->client);
-    //         $google_account_info = $google_oauth->userinfo->get();
-    //         // Extract user details
-    //         $userId = $google_account_info->id;
-    //         $email = $google_account_info->email;
-    //         $verifiedEmail = $google_account_info->verifiedEmail;
-    //         $name = $google_account_info->name;
-    //         $givenName = $google_account_info->givenName;
-    //         $familyName = $google_account_info->familyName;
-    //         $picture = $google_account_info->picture;
-    //         $locale = $google_account_info->locale;
-    //         $hostedDomain = $google_account_info->hd;
-    //         $gender = $google_account_info->gender;
-    //         $birthday = $google_account_info->birthday;
-    //         $profileUrl = $google_account_info->profile;
-    //         $emailVerifiedByUser = $google_account_info->emailVerified;
-    //         $googleProfileLink = $google_account_info->link;
-
-    //         $accessInfo = [
-    //             'id' => $userId,
-    //             'email' => $email,
-    //             'verifiedEmail' => $verifiedEmail,
-    //             'name' => $name,
-    //             'givenName' => $givenName,
-    //             'familyName' => $familyName,
-    //             'picture' => $picture,
-    //             'locale' => $locale,
-    //             'hostedDomain' => $hostedDomain,
-    //             'gender' => $gender,
-    //             'birthday' => $birthday,
-    //             'profileUrl' => $profileUrl,
-    //             'emailVerifiedByUser' => $emailVerifiedByUser,
-    //             'googleProfileLink' => $googleProfileLink,
-    //         ];
-
-
-    //         // Check if the user exists
-    //         $genaratePass = "GoogleLoginGenaratePass123";
-    //         $user = User::firstOrCreate(
-    //             ['email' => $email],
-    //             ['name' => $name, 'password' => $genaratePass]
-    //         );
-
-    //         // Save or update the token
-    //         GoogleToken::updateOrCreate(
-    //             ['user_id' => $user->id],
-    //             [
-    //                 'access_token' => json_encode($token),
-    //                 'access_info' => json_encode($accessInfo)
-    //             ]
-    //         );
-
-    //         // User Login
-    //         $loginUser = Auth::attempt([
-    //             'email' => $email,
-    //             'password' => $genaratePass,
-    //         ]);
-
-    //         // Check login
-    //         if ($loginUser) {
-    //             return redirect()->route('home')->with('msg', 'User Logged In Successful');
-    //         } else {
-    //             return redirect()->route('home')->with('msg', 'Someting Want Wrong Login User');
-    //         }
-    //     } catch (\Throwable $th) {
-    //         return redirect()->route('home')->with('msg', $th->getMessage());
-    //     }
-    // }
-
-
-    // GEt All Gail
-    // public function getMail()
-    // {
-    //     $Gtoken = Session::get('Gtoken');
-    //     $this->client->setAccessToken($Gtoken);
-
-    //     if ($this->client->isAccessTokenExpired()) {
-    //         $refreshToken = Session::get('google_refresh_token');
-    //         if ($refreshToken) {
-    //             $this->client->fetchAccessTokenWithRefreshToken($refreshToken);
-    //             // Update or store the new access token
-    //             $newAccessToken = $this->client->getAccessToken();
-    //             $this->client->setAccessToken($newAccessToken);
-
-    //             // Log the new access token for debugging
-    //             Log::info('New Access Token: ' . json_encode($newAccessToken));
-    //         } else {
-    //             return redirect()->route('home')->with('msg', "Refresh token is missing.");
-    //         }
-    //     }
-
-    //     // $gmail = new \Google\Service\Gmail($this->client);
-    //     $gmail = new Gmail($this->client);
-    //     $inbox = $gmail->users_messages->listUsersMessages('me');
-
-    //     return view('gmail.inbox.inboxMessages', ['inboxMessage' => $inbox->getMessages()]);
-    //     // return $data;
-    // }
-
+    // Get Email All
     public function getMail()
     {
         $Gtoken = Session::get('Gtoken');
@@ -467,7 +297,6 @@ class GmailController extends Controller
         // return $inbox->getMessages();
         return view('gmail.inbox.inboxMessages', ['inboxMessage' => $inbox->getMessages()]);
     }
-
 
     // inbox Single message View
     public function singleInboxMessage($messageId)

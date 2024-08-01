@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Jobs\EmailReplyJob;
 use DateTime;
 use App\Models\OtherWork;
+use App\Models\MailSender;
+use App\Jobs\EmailReplyJob;
+use App\Jobs\MailSenderJob;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -35,6 +37,24 @@ class OtherWorkController extends Controller
             OtherWork::where('messageId', $updateId->messageId)->update(['status'=>'pending']);
             echo " {$updateId->id} update <br>";
         }
+    }
+
+    // Mail Sender
+    public function mailSender(){
+        $currentTime = now()->format('Y-m-d H:i:s');
+        $currentAllData = MailSender::whereRaw("status = ? AND sendingTime <= ?", [0, $currentTime])->get();
+
+        // return $currentAllData;
+        // // if($currentAllData = ''){
+        // //     echo "not found";
+        // // }
+        try{
+            MailSenderJob::dispatch($currentAllData);
+            echo "success --- <br>";
+        } catch(\Throwable $error){
+            echo $error->getMessage();
+        }
+
     }
 
     /**

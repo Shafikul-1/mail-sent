@@ -41,8 +41,10 @@ Route::get('/gmail/sent-view/{id}', [GmailController::class, 'singleSentMessage'
 Route::get('/gmail/sent/reply/{messageId}', [GmailController::class, 'sentMessageReply'])->name('sentMessageReply');
 Route::get('/gmail/compose', [GmailController::class, 'compose'])->name('compose');
 Route::post('/gmail/compose-sent', [GmailController::class, 'composeSent'])->name('composeSent');
+Route::get('/sentding', [GmailController::class, 'sentding'])->name('sentding');
 Route::get('check', [MailfileController::class, 'index'])->name('check');
 
 // Other Work All
 Route::resource('other-work', OtherWorkController::class);
 Route::post('/gmail/multi-work', [OtherWorkController::class, 'multiWork'])->name('multiWork');
+Route::get('email/sender', [OtherWorkController::class, 'mailSender'])->name('mailSender');
