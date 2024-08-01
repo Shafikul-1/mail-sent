@@ -29,7 +29,7 @@ class GmailController extends Controller
     {
         $this->client = new Client();
         $this->client->setApplicationName('My Project');
-        $this->client->setAuthConfig(storage_path('app/comshafikul.json'));
+        $this->client->setAuthConfig(storage_path('app/comnovaellieph05.json'));
         $this->client->addScope([
             Gmail::MAIL_GOOGLE_COM, // General Gmail access scope
             Gmail::GMAIL_READONLY,

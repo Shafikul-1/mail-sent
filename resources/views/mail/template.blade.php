@@ -1,8 +1,6 @@
-<!DOCTYPE html>
-<html lang="en">
+<html>
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -10,14 +8,16 @@
             padding: 0;
             background-color: #f6f6f6;
         }
+
         .email-container {
-            max-width: 600px;
+            max-width: 100%;
             margin: 0 auto;
             background-color: #ffffff;
             padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
+
         .header {
             text-align: center;
             padding: 10px 0;
@@ -25,22 +25,27 @@
             color: white;
             border-radius: 8px 8px 0 0;
         }
+
         .header h1 {
             margin: 0;
             font-size: 24px;
         }
+
         .content {
             padding: 20px;
             color: #333333;
             line-height: 1.6;
         }
+
         .content h2 {
             font-size: 20px;
             color: #4CAF50;
         }
+
         .content p {
             margin: 10px 0;
         }
+
         .footer {
             text-align: center;
             padding: 10px;
@@ -48,25 +53,27 @@
             color: #777777;
             border-top: 1px solid #eeeeee;
         }
-        .bestRegards{
+
+        .bestRegards {
             font-size: 25px
         }
     </style>
 </head>
+
 <body>
     <div class="email-container">
         <div class="header">
-            <h1>Photo Editor PH</h1>
+            <h1>Welcome to Expert Photo Editing Services</h1>
         </div>
         <div class="content">
             <h2>Hello Dear,</h2>
             <span> {!! $data['mail_body'] !!}</span>
             <br>
             <p class="bestRegards">Best regards,</p>
-            <b>{{$senderName}}</b>
+            <b>{{ $senderName }}</b>
         </div>
-      
+
     </div>
 </body>
-</html>
 
+</html>
