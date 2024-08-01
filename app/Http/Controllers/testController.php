@@ -30,6 +30,7 @@ class testController extends Controller
             try {
                 SendEmailJob::dispatch($mailSettings);
                 echo "success -- <br>";
+                return true;
             } catch (\Throwable $th) {
                 echo $th->getMessage();
             }

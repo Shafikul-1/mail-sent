@@ -63,7 +63,7 @@ class MailSenderJob implements ShouldQueue
                 } catch (Google_Service_Exception $e) {
                     Log::error('Error sending email: ' . $e->getMessage());
                 } catch (\Exception $s) {
-                    Log::error('Genaral Error:' .$s->getMessage());
+                    Log::error('Genaral Error:' . $s->getMessage());
                 }
             } else {
                 Log::warning('Access check failed for user ID: ' . $data->user_id);

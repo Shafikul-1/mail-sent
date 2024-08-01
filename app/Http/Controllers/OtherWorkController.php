@@ -31,34 +31,37 @@ class OtherWorkController extends Controller
             // return $currentAllData;
             try {
                 EmailReplyJob::dispatch($currentAllData);
-                echo "success --- <br> ";
+                foreach ($currentAllData as $updateId) {
+                    OtherWork::where('messageId', $updateId->messageId)->update(['status' => 'pending']);
+                    echo " {$updateId->id} update <br>";
+                }
             } catch (\Throwable $error) {
-                Log::error( "EmailREplyJob Dispatch Error " . $error->getMessage());
+                Log::error("EmailREplyJob Dispatch Error " . $error->getMessage());
                 echo $error->getMessage();
-            }
-            foreach ($currentAllData as $updateId) {
-                OtherWork::where('messageId', $updateId->messageId)->update(['status' => 'pending']);
-                echo " {$updateId->id} update <br>";
             }
         }
     }
 
     // Mail Sender
-    public function mailSender(){
+    public function mailSender()
+    {
         $currentTime = now()->format('Y-m-d H:i:s');
         $currentAllData = MailSender::whereRaw("status = ? AND sendingTime <= ?", [0, $currentTime])->get();
 
-        // return $currentAllData;
-        // // if($currentAllData = ''){
-        // //     echo "not found";
-        // // }
-        try{
-            MailSenderJob::dispatch($currentAllData);
-            echo "success --- <br>";
-        } catch(\Throwable $error){
-            echo $error->getMessage();
+        if ($currentAllData->isEmpty()) {
+            echo "No Data Found Current Time Arr Is Empty";
+        } else {
+            try {
+                MailSenderJob::dispatch($currentAllData);
+                foreach ($currentAllData as $updateId) {
+                    MailSender::where('id', $updateId->id)->update(['status' => true]);
+                    echo " {$updateId->id} update <br>";
+                }
+                return true;
+            } catch (\Throwable $error) {
+                echo $error->getMessage();
+            }
         }
-
     }
 
     /**

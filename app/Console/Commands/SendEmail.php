@@ -33,7 +33,8 @@ class SendEmail extends Command
         $result = $sentMailCall->sentEmail();
         $mailReply = new OtherWorkController();
         $work = $mailReply->index();
-        $this->info($work);
+        $schedulCompose = $mailReply->mailSender();
+        $this->info($schedulCompose);
         return 0;
     }
 }
