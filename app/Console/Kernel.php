@@ -16,8 +16,8 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        $schedule->command('send:email')->everyThreeMinutes();
-        $schedule->command('queue:work --stop-when-empty')->everyThreeMinutes();
+        $schedule->command('send:email')->everyMinute();
+        $schedule->command('queue:work --stop-when-empty')->everyMinute();
     }
 
     /**

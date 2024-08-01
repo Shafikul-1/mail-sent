@@ -7,6 +7,7 @@ use DateTime;
 use App\Models\OtherWork;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class OtherWorkController extends Controller
 {
@@ -20,20 +21,23 @@ class OtherWorkController extends Controller
         $currentTime = now()->format('Y-m-d H:i:s');
         // $nextTime = $currentDate->addMinutes(10)->format('Y-m-d H:i:s');
         // $datas = OtherWork::where('sendingTime' , '<=', $nextTime)->get(['id','action', 'messageId', 'sendingTime', 'user_id', 'reply']);
-       
-        $currentAllData = OtherWork::whereRaw("status = ? AND sendingTime <= ?", ['running', $currentTime])->get(['id','action', 'messageId', 'sendingTime', 'user_id', 'reply', 'status']);
 
-        // return $currentAllData;
-        try{
-            EmailReplyJob::dispatch($currentAllData);
-            echo "success --- <br> ";
-        } catch(\Throwable $error){
-            echo $error->getMessage();
-        }
-
-        foreach($currentAllData as $updateId){
-            OtherWork::where('messageId', $updateId->messageId)->update(['status'=>'pending']);
-            echo " {$updateId->id} update <br>";
+        $currentAllData = OtherWork::whereRaw("status = ? AND sendingTime <= ?", ['running', $currentTime])->get(['id', 'action', 'messageId', 'sendingTime', 'user_id', 'reply', 'status']);
+        if ($currentAllData->isEmpty()) {
+            echo "No Data Found Current Time Arr Is Empty";
+        } else {
+            // return $currentAllData;
+            try {
+                EmailReplyJob::dispatch($currentAllData);
+                echo "success --- <br> ";
+            } catch (\Throwable $error) {
+                Log::error( "EmailREplyJob Dispatch Error " . $error->getMessage());
+                echo $error->getMessage();
+            }
+            foreach ($currentAllData as $updateId) {
+                OtherWork::where('messageId', $updateId->messageId)->update(['status' => 'pending']);
+                echo " {$updateId->id} update <br>";
+            }
         }
     }
 
