@@ -230,6 +230,7 @@ class GmailController extends Controller
         //     Log::error('Error sending email: ' . $e->getMessage());
         //     return back()->with('error', 'Failed to send email');
         // }
+
     // Compose Email Privte FN
     private function createEmailWithAttachments($to, $subject, $messageText, $attachmentPaths)
     {
@@ -269,7 +270,7 @@ class GmailController extends Controller
         }
 
         $rawMessage .= "--{$boundary}--";
-        return $rawMessage;
+        // return $rawMessage;
 
         return rtrim(strtr(base64_encode($rawMessage), '+/', '-_'), '=');
     }
