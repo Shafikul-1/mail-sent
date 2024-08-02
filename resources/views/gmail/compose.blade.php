@@ -22,11 +22,11 @@
     }
 
     /* .ql-editor {
-            box-sizing: border-box; 
-            overflow: auto; 
+            box-sizing: border-box;
+            overflow: auto;
         }
         .ql-container {
-            box-sizing: border-box; 
+            box-sizing: border-box;
         }
         .ql-custom-button {
             background-color: #f4f4f4;
@@ -40,13 +40,13 @@
             justify-content: center;
         }
         .ql-custom-button i {
-            font-size: 16px; 
+            font-size: 16px;
         }
         .ql-custom-button:hover {
             background-color: #e0e0e0;
         }
         #editor {
-            overflow: auto; 
+            overflow: auto;
         } */
 </style>
 @section('othersContent')
@@ -79,14 +79,20 @@
                 class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400"
                 type="file" name="attachments[]" id="attachments" multiple>
             <div class="mt-1 text-sm text-gray-500 dark:text-gray-300" id="attachments">Upload AttachMent Files</div>
+            @error('attachments')
+                <p class="text-red-400">{{ $message }}</p>
+            @enderror
         </div>
         <div class="mb-5">
-
+            @error('message')
+                <p class="text-red-400">{{ $message }}</p>
+            @enderror
             {{-- <div value="{{old('message')}}" id="htmlContent" contenteditable="true" class="w-[10rem] h-[20rem] block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Leave a comment..."></div> --}}
             <input type="hidden" name="message" id="message">
         </div>
         <div class="mb-5">
-            <label for="sendingTime" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Sending Time Number Min</label>
+            <label for="sendingTime" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Sending Time
+                Number Min</label>
             <input type="text" value="{{ old('sendingTime') }}" name="sendingTime" id="sendingTime"
                 class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                 placeholder="Sending Time here ..." />
@@ -117,18 +123,44 @@
             theme: 'snow',
             modules: {
                 toolbar: {
-                  container: [
-                    ['emoji'],
-                        [{ 'font': [] }, { 'size': [] }],
-                        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+                    container: [
+                        ['emoji'],
+                        [{
+                            'font': []
+                        }, {
+                            'size': []
+                        }],
+                        [{
+                            'header': [1, 2, 3, 4, 5, 6, false]
+                        }],
                         ['bold', 'italic', 'underline', 'strike'],
-                        [{ 'color': [] }, { 'background': [] }],
-                        [{ 'script': 'sub'}, { 'script': 'super' }],
+                        [{
+                            'color': []
+                        }, {
+                            'background': []
+                        }],
+                        [{
+                            'script': 'sub'
+                        }, {
+                            'script': 'super'
+                        }],
                         ['blockquote', 'code-block'],
-                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                        [{ 'indent': '-1'}, { 'indent': '+1' }],
-                        [{ 'direction': 'rtl' }],
-                        [{ 'align': [] }],
+                        [{
+                            'list': 'ordered'
+                        }, {
+                            'list': 'bullet'
+                        }],
+                        [{
+                            'indent': '-1'
+                        }, {
+                            'indent': '+1'
+                        }],
+                        [{
+                            'direction': 'rtl'
+                        }],
+                        [{
+                            'align': []
+                        }],
                         ['link', 'image', ],
                         // ['link', 'image', 'video', 'formula'],
                         ['clean'],

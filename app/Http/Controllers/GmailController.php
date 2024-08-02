@@ -165,21 +165,30 @@ class GmailController extends Controller
     // }
 
 
+    // $currentTime = now();
+    //         $email = $this->createEmailWithAttachments($client_mail, $request->input('subject'), $request->input('message'), $attachmentPaths);
+    // MailSender::create([
+    //     'client_email' => $client_mail,
+    //     'user_id' => $user_id,
+    //     'sendingTime' => $currentTime->addMinutes($intervalMinutes)->format('Y-m-d H:i:s'),
+    //     'status' => false,
+    //     'email_content' => $email,
+    // ]);
+    // $intervalMinutes += $request->sendingTime;
+
     // Compose Email Sent
     public function composeSent(Request $request)
     {
-        // return $request;
         $user_id = Auth::user()->id;
 
         // Validate the request
         $validatedData = $request->validate([
             'to' => 'required',
             'subject' => 'required',
-            // 'htmlFormat' => 'required',
             'sendingTime' => 'required|numeric',
-            'attachments.*' => 'file|mimes:jpg,jpeg,png,pdf,doc,docx,xls,xlsx|max:2048'
+            'attachments.*' => 'file|mimes:jpg,jpeg,png,pdf,doc,docx,xls,xlsx,mp4,avi|max:20480' // Increased max size
         ]);
-        // return $request->to;
+
         $Gtoken = Session::get('Gtoken');
         $this->client->setAccessToken($Gtoken);
 
@@ -197,9 +206,10 @@ class GmailController extends Controller
 
         $service = new Gmail($this->client);
         $attachmentPaths = [];
+
         if ($request->file('attachments')) {
-            foreach ($request->file('attachments') as $key => $value) {
-                $originalName = pathinfo($value->getClientOriginalName(), PATHINFO_FILENAME) . $value->getClientOriginalExtension();
+            foreach ($request->file('attachments') as $value) {
+                $originalName = pathinfo(time() . '_' . $value->getClientOriginalName(), PATHINFO_FILENAME) . '.' . $value->getClientOriginalExtension();
                 $path = $value->storeAs('attachments', $originalName, 'public');
                 Mailfile::create([
                     'all_files_name' => $path,
@@ -209,12 +219,17 @@ class GmailController extends Controller
             }
         }
 
-        // return $attachmentPaths;
+        // Parse the email body for embedded files (e.g., images, videos)
+        $messageBody = $request->input('message');
+        $messageBody = $this->handleEmbeddedFiles($messageBody, $user_id, $attachmentPaths);
+
         $allMails = explode(' ', $request->to);
         $intervalMinutes = $request->sendingTime;
+
         foreach ($allMails as $client_mail) {
             $currentTime = now();
-            $email = $this->createEmailWithAttachments($client_mail, $request->input('subject'), $request->input('message'), $attachmentPaths);
+            $email = $this->createEmailWithAttachments($client_mail, $request->input('subject'), $messageBody, $attachmentPaths);
+
             MailSender::create([
                 'client_email' => $client_mail,
                 'user_id' => $user_id,
@@ -223,8 +238,8 @@ class GmailController extends Controller
                 'email_content' => $email,
             ]);
             $intervalMinutes += $request->sendingTime;
+
             // try {
-            //     $service = new Gmail($this->client);
             //     $message = new Message();
             //     $message->setRaw($email);
             //     $service->users_messages->send('me', $message);
@@ -235,10 +250,42 @@ class GmailController extends Controller
             //     return back()->with('error', 'Failed to send email');
             // }
         }
-        return redirect()->route('home')->with('msg', "mail sending pending, save database");
+
+        return redirect()->route('home')->with('msg', "Mail sending pending, saved to database");
     }
 
-    // Compose Email Privte FN
+    // Handle embedded files in the email body
+    private function handleEmbeddedFiles($messageBody, $user_id, &$attachmentPaths)
+    {
+        // Regular expression to find embedded files (e.g., <img src="data:image/png;base64,...">)
+        $pattern = '/<img src="data:(image\/\w+);base64,([^"]+)">/i';
+
+        if (preg_match_all($pattern, $messageBody, $matches, PREG_SET_ORDER)) {
+            foreach ($matches as $index => $match) {
+                $mimeType = $match[1];
+                $base64Data = $match[2];
+                $fileData = base64_decode($base64Data);
+                $extension = explode('/', $mimeType)[1];
+                $fileName = uniqid() . '.' . $extension;
+                $filePath = storage_path('app/public/attachments/' . $fileName);
+                file_put_contents($filePath, $fileData);
+
+                Mailfile::create([
+                    'all_files_name' => 'attachments/' . $fileName,
+                    'user_id' => $user_id,
+                ]);
+
+                array_push($attachmentPaths, 'attachments/' . $fileName);
+
+                // Replace the embedded file with a CID (Content-ID)
+                $messageBody = str_replace($match[0], '<img src="cid:' . $fileName . '">', $messageBody);
+            }
+        }
+
+        return $messageBody;
+    }
+
+    // Compose email with attachments
     private function createEmailWithAttachments($to, $subject, $messageText, $attachmentPaths)
     {
         $boundary = uniqid(rand(), true);
@@ -251,7 +298,7 @@ class GmailController extends Controller
         $rawMessage .= "To: {$to}\r\n";
         $rawMessage .= "Subject: {$subject}\r\n";
         $rawMessage .= "MIME-Version: 1.0\r\n";
-        $rawMessage .= "Content-Type: multipart/mixed; boundary=\"{$boundary}\"\r\n\r\n";
+        $rawMessage .= "Content-Type: multipart/related; boundary=\"{$boundary}\"\r\n\r\n";
 
         // Plain text message
         $rawMessage .= "--{$boundary}\r\n";
@@ -272,15 +319,16 @@ class GmailController extends Controller
             $rawMessage .= "--{$boundary}\r\n";
             $rawMessage .= "Content-Type: {$mimeType}; name=\"{$fileName}\"\r\n";
             $rawMessage .= "Content-Disposition: attachment; filename=\"{$fileName}\"\r\n";
+            $rawMessage .= "Content-ID: <{$fileName}>\r\n";
             $rawMessage .= "Content-Transfer-Encoding: base64\r\n\r\n";
             $rawMessage .= chunk_split($base64File, 76, "\r\n");
         }
 
         $rawMessage .= "--{$boundary}--";
-        // return $rawMessage;
 
         return rtrim(strtr(base64_encode($rawMessage), '+/', '-_'), '=');
     }
+
 
     // Get Email All
     public function getMail()
