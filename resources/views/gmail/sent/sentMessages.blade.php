@@ -196,5 +196,16 @@
             const AllPage = document.querySelector('.AllPage');
             AllPage.classList.toggle('hidden');
         }
+        function replyFunction() {
+          const replyFormShow = document.querySelector('.replyFormShow');
+          replyFormShow.classList.remove('hidden');
+          if (replyFormShow.classList.contains("translate-y-[20rem]")) {
+              replyFormShow.classList.replace("translate-y-[20rem]", "translate-y-[0rem]");
+          } else if (replyFormShow.classList.contains("translate-y-[0rem]")) {
+              replyFormShow.classList.replace("translate-y-[0rem]", "translate-y-[20rem]");
+              replyFormShow.classList.add('hidden');
+          }
+      }
+
     </script>
 @endsection

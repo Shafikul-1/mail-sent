@@ -20,6 +20,7 @@ use Google\Service\Gmail\MessagePart;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Storage;
 use Google\Service\Gmail\MessagePartBody;
+use App\Models\Mailfile;
 
 class GmailController extends Controller
 {
@@ -125,7 +126,7 @@ class GmailController extends Controller
         return view('gmail.compose');
     }
 
-    
+
     // public function sentding()
     // {
     //     $uerId = Auth::user()->id;
@@ -167,6 +168,9 @@ class GmailController extends Controller
     // Compose Email Sent
     public function composeSent(Request $request)
     {
+        // return $request;
+        $user_id = Auth::user()->id;
+
         // Validate the request
         $validatedData = $request->validate([
             'to' => 'required',
@@ -197,12 +201,15 @@ class GmailController extends Controller
             foreach ($request->file('attachments') as $key => $value) {
                 $originalName = pathinfo($value->getClientOriginalName(), PATHINFO_FILENAME) . $value->getClientOriginalExtension();
                 $path = $value->storeAs('attachments', $originalName, 'public');
+                Mailfile::create([
+                    'all_files_name' => $path,
+                    'user_id' => $user_id,
+                ]);
                 array_push($attachmentPaths, $path);
             }
         }
 
         // return $attachmentPaths;
-        $user_id = Auth::user()->id;
         $allMails = explode(' ', $request->to);
         $intervalMinutes = $request->sendingTime;
         foreach ($allMails as $client_mail) {
@@ -216,20 +223,20 @@ class GmailController extends Controller
                 'email_content' => $email,
             ]);
             $intervalMinutes += $request->sendingTime;
+            // try {
+            //     $service = new Gmail($this->client);
+            //     $message = new Message();
+            //     $message->setRaw($email);
+            //     $service->users_messages->send('me', $message);
+
+            //     return redirect()->route('home')->with('msg', 'Email sent successfully');
+            // } catch (Google_Service_Exception $e) {
+            //     Log::error('Error sending email: ' . $e->getMessage());
+            //     return back()->with('error', 'Failed to send email');
+            // }
         }
         return redirect()->route('home')->with('msg', "mail sending pending, save database");
     }
-  // try {
-        // $service = new Gmail($this->client);
-        //     $message = new Message();
-        //     $message->setRaw($email);
-        //     $service->users_messages->send('me', $message);
-
-        //     return redirect()->route('home')->with('msg', 'Email sent successfully');
-        // } catch (Google_Service_Exception $e) {
-        //     Log::error('Error sending email: ' . $e->getMessage());
-        //     return back()->with('error', 'Failed to send email');
-        // }
 
     // Compose Email Privte FN
     private function createEmailWithAttachments($to, $subject, $messageText, $attachmentPaths)

@@ -7,18 +7,14 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Document</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio"></script>
-    <script>
-      function replyFunction() {
-          const replyFormShow = document.querySelector('.replyFormShow');
-          replyFormShow.classList.remove('hidden');
-          if (replyFormShow.classList.contains("translate-y-[20rem]")) {
-              replyFormShow.classList.replace("translate-y-[20rem]", "translate-y-[0rem]");
-          } else if (replyFormShow.classList.contains("translate-y-[0rem]")) {
-              replyFormShow.classList.replace("translate-y-[0rem]", "translate-y-[20rem]");
-              replyFormShow.classList.add('hidden');
-          }
-      }
-  </script>
+    <!-- Include Quill library -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <!-- Include Quill Emoji CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/quill-emoji/dist/quill-emoji.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/quill-emoji/dist/quill-emoji-toolbar.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/quill-emoji/dist/quill-emoji-textarea.css" rel="stylesheet">
+
+
 </head>
 
 <body>
@@ -103,8 +99,12 @@
     <div class="dark:bg-gray-500">
       
       @yield('othersContent')
+
     </div>
+
     <script src="https://kit.fontawesome.com/ed5a9b6893.js" crossorigin="anonymous"></script>
+    
+
 </body>
 
 </html>
