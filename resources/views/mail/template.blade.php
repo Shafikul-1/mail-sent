@@ -11,7 +11,7 @@
             background-color: #f6f6f6;
         }
         .email-container {
-            max-width: 600px;
+            max-width: 100%;
             margin: 0 auto;
             background-color: #ffffff;
             padding: 20px;
