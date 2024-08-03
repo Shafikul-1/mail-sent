@@ -3,13 +3,14 @@
 namespace App\Http\Controllers;
 
 use DateTime;
+use App\Models\User;
 use App\Models\OtherWork;
 use App\Models\MailSender;
 use App\Jobs\EmailReplyJob;
 use App\Jobs\MailSenderJob;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 class OtherWorkController extends Controller
 {
@@ -46,11 +47,15 @@ class OtherWorkController extends Controller
     public function mailSender()
     {
         $currentTime = now()->format('Y-m-d H:i:s');
-        $currentAllData = MailSender::whereRaw("status = ? AND sendingTime <= ?", [0, $currentTime])->get();
+        $currentAllData = MailSender::whereRaw("status = ? AND sendingTime <= ?", [0, $currentTime])
+        ->join('users', 'users.id', '=', 'mail_senders.user_id')
+        ->get(['mail_senders.id','client_email', 'user_id', 'sendingTime', 'status', 'email_content', 'subject', 'attachmentPaths', 'name', 'email']);
 
         if ($currentAllData->isEmpty()) {
             echo "No Data Found Current Time Arr Is Empty";
         } else {
+        //    $userDetails =  User::find($currentAllData->user_id);
+            // return $currentAllData;
             try {
                 MailSenderJob::dispatch($currentAllData);
                 foreach ($currentAllData as $updateId) {

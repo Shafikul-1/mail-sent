@@ -48,14 +48,16 @@ class MailSenderJob implements ShouldQueue
         $this->client->addScope('https://www.googleapis.com/auth/gmail.send');
         $this->client->setAccessType('offline');
         $this->client->setPrompt('consent');
-
+// return Log::info('debag data' . $this->datas);
         foreach ($this->datas as $data) {
             $accessCheck = $this->checkAccess($data->user_id);
             if ($accessCheck) {
+                // return Log::info('debag check'. $data);
+                $encodeEmail = $this->createEmailWithAttachments($data->client_email, $data->subject, $data->email_content, $data->attachmentPaths, $data->name, $data->email);
                 try {
                     $service = new Gmail($this->client);
                     $message = new Message();
-                    $message->setRaw($data->email_content);
+                    $message->setRaw($encodeEmail);
                     $service->users_messages->send('me', $message);
 
                     MailSender::where('id', $data->id)->delete();
@@ -70,6 +72,48 @@ class MailSenderJob implements ShouldQueue
             }
         }
     }
+
+    private function createEmailWithAttachments($client_mail, $subject, $messageText, $attachmentPaths, $name, $email)
+    {
+        $boundary = uniqid(rand(), true);
+        $subject = "=?utf-8?B?" . base64_encode($subject) . "?=";
+        $from = "=?utf-8?B?" . base64_encode($name) . "?= <{$email}>";
+
+        $rawMessage = "From: {$from}\r\n";
+        $rawMessage .= "To: {$client_mail}\r\n";
+        $rawMessage .= "Subject: {$subject}\r\n";
+        $rawMessage .= "MIME-Version: 1.0\r\n";
+        $rawMessage .= "Content-Type: multipart/related; boundary=\"{$boundary}\"\r\n\r\n";
+
+        // Plain text message
+        $rawMessage .= "--{$boundary}\r\n";
+        $rawMessage .= "Content-Type: text/html; charset=utf-8\r\n\r\n";
+        $rawMessage .= "{$messageText}\r\n";
+
+        foreach ($attachmentPaths as $path) {
+            $filePath = storage_path("app/public/{$path}");
+            if (!file_exists($filePath)) {
+                continue; // Skip if the file doesn't exist
+            }
+            $fileName = basename($filePath);
+            $fileData = file_get_contents($filePath);
+            $base64File = base64_encode($fileData);
+            $mimeType = mime_content_type($filePath);
+
+            // Attachment
+            $rawMessage .= "--{$boundary}\r\n";
+            $rawMessage .= "Content-Type: {$mimeType}; name=\"{$fileName}\"\r\n";
+            $rawMessage .= "Content-Disposition: attachment; filename=\"{$fileName}\"\r\n";
+            $rawMessage .= "Content-ID: <{$fileName}>\r\n";
+            $rawMessage .= "Content-Transfer-Encoding: base64\r\n\r\n";
+            $rawMessage .= chunk_split($base64File, 76, "\r\n");
+        }
+
+        $rawMessage .= "--{$boundary}--";
+// return $client_mail;
+        return rtrim(strtr(base64_encode($rawMessage), '+/', '-_'), '=');
+    }
+
 
     private function checkAccess($userId)
     {

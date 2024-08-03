@@ -9,4 +9,8 @@ class MailSender extends Model
 {
     use HasFactory;
     protected $guarded = [];
+
+    protected $casts = [
+        'attachmentPaths' => 'array',
+    ];
 }

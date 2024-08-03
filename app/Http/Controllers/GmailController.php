@@ -179,6 +179,8 @@ class GmailController extends Controller
     // Compose Email Sent
     public function composeSent(Request $request)
     {
+        ini_set('max_excution_time', 240);
+
         $user_id = Auth::user()->id;
 
         // Validate the request
@@ -225,17 +227,19 @@ class GmailController extends Controller
 
         $allMails = explode(' ', $request->to);
         $intervalMinutes = $request->sendingTime;
-
+// return $attachmentPaths;
         foreach ($allMails as $client_mail) {
             $currentTime = now();
-            $email = $this->createEmailWithAttachments($client_mail, $request->input('subject'), $messageBody, $attachmentPaths);
+            // $email = $this->createEmailWithAttachments($client_mail, $request->input('subject'), $messageBody, $attachmentPaths);
 
             MailSender::create([
                 'client_email' => $client_mail,
+                'attachmentPaths' => $attachmentPaths,
+                'subject' => $request->subject,
                 'user_id' => $user_id,
                 'sendingTime' => $currentTime->addMinutes($intervalMinutes)->format('Y-m-d H:i:s'),
                 'status' => false,
-                'email_content' => $email,
+                'email_content' => $messageBody,
             ]);
             $intervalMinutes += $request->sendingTime;
 
@@ -243,11 +247,9 @@ class GmailController extends Controller
             //     $message = new Message();
             //     $message->setRaw($email);
             //     $service->users_messages->send('me', $message);
-
-            //     return redirect()->route('home')->with('msg', 'Email sent successfully');
+            //     // return redirect()->route('home')->with('msg', 'Email sent successfully');
             // } catch (Google_Service_Exception $e) {
             //     Log::error('Error sending email: ' . $e->getMessage());
-            //     return back()->with('error', 'Failed to send email');
             // }
         }
 
@@ -286,48 +288,48 @@ class GmailController extends Controller
     }
 
     // Compose email with attachments
-    private function createEmailWithAttachments($to, $subject, $messageText, $attachmentPaths)
-    {
-        $boundary = uniqid(rand(), true);
-        $subject = "=?utf-8?B?" . base64_encode($subject) . "?=";
-        $fromName = Auth::user()->name;
-        $fromEmail = Auth::user()->email;
-        $from = "=?utf-8?B?" . base64_encode($fromName) . "?= <{$fromEmail}>";
+    // private function createEmailWithAttachments($to, $subject, $messageText, $attachmentPaths)
+    // {
+    //     $boundary = uniqid(rand(), true);
+    //     $subject = "=?utf-8?B?" . base64_encode($subject) . "?=";
+    //     $fromName = Auth::user()->name;
+    //     $fromEmail = Auth::user()->email;
+    //     $from = "=?utf-8?B?" . base64_encode($fromName) . "?= <{$fromEmail}>";
 
-        $rawMessage = "From: {$from}\r\n";
-        $rawMessage .= "To: {$to}\r\n";
-        $rawMessage .= "Subject: {$subject}\r\n";
-        $rawMessage .= "MIME-Version: 1.0\r\n";
-        $rawMessage .= "Content-Type: multipart/related; boundary=\"{$boundary}\"\r\n\r\n";
+    //     $rawMessage = "From: {$from}\r\n";
+    //     $rawMessage .= "To: {$to}\r\n";
+    //     $rawMessage .= "Subject: {$subject}\r\n";
+    //     $rawMessage .= "MIME-Version: 1.0\r\n";
+    //     $rawMessage .= "Content-Type: multipart/related; boundary=\"{$boundary}\"\r\n\r\n";
 
-        // Plain text message
-        $rawMessage .= "--{$boundary}\r\n";
-        $rawMessage .= "Content-Type: text/html; charset=utf-8\r\n\r\n";
-        $rawMessage .= "{$messageText}\r\n";
+    //     // Plain text message
+    //     $rawMessage .= "--{$boundary}\r\n";
+    //     $rawMessage .= "Content-Type: text/html; charset=utf-8\r\n\r\n";
+    //     $rawMessage .= "{$messageText}\r\n";
 
-        foreach ($attachmentPaths as $path) {
-            $filePath = storage_path("app/public/{$path}");
-            if (!file_exists($filePath)) {
-                continue; // Skip if the file doesn't exist
-            }
-            $fileName = basename($filePath);
-            $fileData = file_get_contents($filePath);
-            $base64File = base64_encode($fileData);
-            $mimeType = mime_content_type($filePath);
+    //     foreach ($attachmentPaths as $path) {
+    //         $filePath = storage_path("app/public/{$path}");
+    //         if (!file_exists($filePath)) {
+    //             continue; // Skip if the file doesn't exist
+    //         }
+    //         $fileName = basename($filePath);
+    //         $fileData = file_get_contents($filePath);
+    //         $base64File = base64_encode($fileData);
+    //         $mimeType = mime_content_type($filePath);
 
-            // Attachment
-            $rawMessage .= "--{$boundary}\r\n";
-            $rawMessage .= "Content-Type: {$mimeType}; name=\"{$fileName}\"\r\n";
-            $rawMessage .= "Content-Disposition: attachment; filename=\"{$fileName}\"\r\n";
-            $rawMessage .= "Content-ID: <{$fileName}>\r\n";
-            $rawMessage .= "Content-Transfer-Encoding: base64\r\n\r\n";
-            $rawMessage .= chunk_split($base64File, 76, "\r\n");
-        }
+    //         // Attachment
+    //         $rawMessage .= "--{$boundary}\r\n";
+    //         $rawMessage .= "Content-Type: {$mimeType}; name=\"{$fileName}\"\r\n";
+    //         $rawMessage .= "Content-Disposition: attachment; filename=\"{$fileName}\"\r\n";
+    //         $rawMessage .= "Content-ID: <{$fileName}>\r\n";
+    //         $rawMessage .= "Content-Transfer-Encoding: base64\r\n\r\n";
+    //         $rawMessage .= chunk_split($base64File, 76, "\r\n");
+    //     }
 
-        $rawMessage .= "--{$boundary}--";
+    //     $rawMessage .= "--{$boundary}--";
 
-        return rtrim(strtr(base64_encode($rawMessage), '+/', '-_'), '=');
-    }
+    //     return rtrim(strtr(base64_encode($rawMessage), '+/', '-_'), '=');
+    // }
 
 
     // Get Email All
