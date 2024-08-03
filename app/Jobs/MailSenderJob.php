@@ -39,6 +39,7 @@ class MailSenderJob implements ShouldQueue
      */
     public function handle()
     {
+        ini_set('memory_limit', '256M');
         $applicationName = "my projet";
         $this->client = new Client();
         $this->client->setApplicationName($applicationName);
@@ -63,6 +64,7 @@ class MailSenderJob implements ShouldQueue
                     MailSender::where('id', $data->id)->delete();
                     echo "success -- ";
                 } catch (Google_Service_Exception $e) {
+                    MailSender::where('id', $data->id)->update(['status' => 0]);
                     Log::error('Error sending email: ' . $e->getMessage());
                 } catch (\Exception $s) {
                     Log::error('Genaral Error:' . $s->getMessage());
