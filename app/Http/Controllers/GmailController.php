@@ -179,7 +179,7 @@ class GmailController extends Controller
     // Compose Email Sent
     public function composeSent(Request $request)
     {
-        ini_set('max_excution_time', 240);
+        ini_set('max_excution_time', 120);
 
         $user_id = Auth::user()->id;
 
@@ -225,7 +225,9 @@ class GmailController extends Controller
         $messageBody = $request->input('message');
         $messageBody = $this->handleEmbeddedFiles($messageBody, $user_id, $attachmentPaths);
 
-        $allMails = explode(' ', $request->to);
+        $allMails = array_filter(explode(' ', $request->to), function($value){
+            return !empty(trim($value));
+        });
         $intervalMinutes = $request->sendingTime;
 // return $attachmentPaths;
         foreach ($allMails as $client_mail) {
