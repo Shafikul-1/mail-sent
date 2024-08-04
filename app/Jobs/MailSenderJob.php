@@ -20,6 +20,8 @@ class MailSenderJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    public $tries = 5; // Set the maximum number of attempts
+    public $timeout = 300; // Set the timeout in seconds (e.g., 300 seconds = 5 minutes)
     protected $datas;
     private $client;
     /**
@@ -52,12 +54,11 @@ class MailSenderJob implements ShouldQueue
         $this->client->addScope('https://www.googleapis.com/auth/gmail.send');
         $this->client->setAccessType('offline');
         $this->client->setPrompt('consent');
-        
+
         // return Log::info('debag data' . $this->datas);
         foreach ($this->datas as $data) {
             $accessCheck = $this->checkAccess($data->user_id);
             if ($accessCheck) {
-                // return Log::info('debag check'. $data);
                 $encodeEmail = $this->createEmailWithAttachments($data->client_email, $data->subject, $data->email_content, $data->attachmentPaths, $data->name, $data->email);
                 try {
                     $service = new Gmail($this->client);
@@ -71,6 +72,7 @@ class MailSenderJob implements ShouldQueue
                     MailSender::where('id', $data->id)->update(['status' => 0]);
                     Log::error('Error sending email: ' . $e->getMessage());
                 } catch (\Exception $s) {
+                    MailSender::where('id', $data->id)->update(['status' => 0]);
                     Log::error('Genaral Error:' . $s->getMessage());
                 }
             } else {
@@ -105,13 +107,24 @@ class MailSenderJob implements ShouldQueue
             // if (!file_exists($filePath)) {
             //     continue; // Skip if the file doesn't exist
             // }
+            // $fileName = basename($filePath);
+            // $fileData = file_get_contents($filePath);
+            // $base64File = base64_encode($fileData);
+            // $mimeType = mime_content_type($filePath);
+            // $rawMessage .= "--{$boundary}\r\n";
+
+            // Attachment
+            // $rawMessage .= "Content-Type: {$mimeType}; name=\"{$fileName}\"\r\n";
+            // $rawMessage .= "Content-Disposition: attachment; filename=\"{$fileName}\"\r\n";
+            // $rawMessage .= "Content-ID: <{$fileName}>\r\n";
+            // $rawMessage .= "Content-Transfer-Encoding: base64\r\n\r\n";
+            // $rawMessage .= chunk_split($base64File, 76, "\r\n");
+
+
             if (!$this->isFileFullyUploaded($filePath)) {
                 continue; // Skip if the file is not fully uploaded
             }
-
             $fileName = basename($filePath);
-            $fileData = file_get_contents($filePath);
-            $base64File = base64_encode($fileData);
             $mimeType = mime_content_type($filePath);
 
             // Attachment
@@ -120,10 +133,19 @@ class MailSenderJob implements ShouldQueue
             $rawMessage .= "Content-Disposition: attachment; filename=\"{$fileName}\"\r\n";
             $rawMessage .= "Content-ID: <{$fileName}>\r\n";
             $rawMessage .= "Content-Transfer-Encoding: base64\r\n\r\n";
-            $rawMessage .= chunk_split($base64File, 76, "\r\n");
+
+            // Read file in chunks
+            $handle = fopen($filePath, "rb");
+            while (!feof($handle)) {
+                $chunk = fread($handle, 10 * 1024 * 1024); // Read 10M at a time
+                $base64Chunk = base64_encode($chunk);
+                $rawMessage .= chunk_split($base64Chunk, 76, "\r\n");
+            }
+            fclose($handle);
         }
 
         $rawMessage .= "--{$boundary}--";
+
         // return $client_mail;
         return rtrim(strtr(base64_encode($rawMessage), '+/', '-_'), '=');
     }
@@ -148,17 +170,20 @@ class MailSenderJob implements ShouldQueue
         if (!$dbgoogleToken) {
             return false;
         }
+        try {
+            $tokenData = json_decode($dbgoogleToken->access_token, true);
+            $this->client->setAccessToken($tokenData);
 
-        $tokenData = json_decode($dbgoogleToken->access_token, true);
-        $this->client->setAccessToken($tokenData);
-
-        // Check if token has expired
-        if ($this->client->isAccessTokenExpired()) {
-            $this->client->fetchAccessTokenWithRefreshToken($this->client->getRefreshToken());
-            $newToken = json_encode($this->client->getAccessToken());
-            GoogleToken::where('user_id', $userId)->update(['access_token' => $newToken]);
-            $tokenData = $this->client->getAccessToken(); // Update tokenData after refresh
+            // Check if token has expired
+            if ($this->client->isAccessTokenExpired()) {
+                $this->client->fetchAccessTokenWithRefreshToken($this->client->getRefreshToken());
+                $newToken = json_encode($this->client->getAccessToken());
+                GoogleToken::where('user_id', $userId)->update(['access_token' => $newToken]);
+                $tokenData = $this->client->getAccessToken(); // Update tokenData after refresh
+            }
+            return true;
+        } catch (\Exception $rmT) {
+            Log::info('Access Token Expaire' . $rmT->getMessage());
         }
-        return true;
     }
 }
