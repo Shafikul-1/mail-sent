@@ -29,12 +29,16 @@ class SendEmail extends Command
      */
     public function handle()
     {
-        $sentMailCall = new testController();
-        $result = $sentMailCall->sentEmail();
-        $mailReply = new OtherWorkController();
-        $work = $mailReply->index();
-        $schedulCompose = $mailReply->mailSender();
-        $this->info($mailReply);
+        $replayOrCompose = new OtherWorkController();
+
+        // Email Compose sent
+        $replyJob = $replayOrCompose->index();
+        $this->info($replyJob);
+
+        // Email Replay sent
+        $composeJob = $replayOrCompose->mailSender();
+        $this->info($composeJob);
+
         return 0;
     }
 }

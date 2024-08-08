@@ -179,6 +179,7 @@ class GmailController extends Controller
     // Compose Email Sent
     public function composeSent(Request $request)
     {
+        return $request;
         ini_set('max_excution_time', 120);
 
         $user_id = Auth::user()->id;

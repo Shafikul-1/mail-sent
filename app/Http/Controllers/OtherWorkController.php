@@ -34,7 +34,7 @@ class OtherWorkController extends Controller
                 EmailReplyJob::dispatch($currentAllData);
                 foreach ($currentAllData as $updateId) {
                     OtherWork::where('messageId', $updateId->messageId)->update(['status' => 'pending']);
-                    echo " {$updateId->id} update <br>";
+                    echo " {$updateId->id} update EmailReplyJob Reply <br>";
                 }
             } catch (\Throwable $error) {
                 Log::error("EmailREplyJob Dispatch Error " . $error->getMessage());
@@ -60,7 +60,7 @@ class OtherWorkController extends Controller
                 MailSenderJob::dispatch($currentAllData);
                 foreach ($currentAllData as $updateId) {
                     MailSender::where('id', $updateId->id)->update(['status' => true]);
-                    echo " {$updateId->id} update <br>";
+                    echo " {$updateId->id} update MailSender Compose <br>";
                 }
                 return true;
             } catch (\Throwable $error) {

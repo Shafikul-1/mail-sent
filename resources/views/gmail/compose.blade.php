@@ -83,6 +83,7 @@
                 <p class="text-red-400">{{ $message }}</p>
             @enderror
         </div>
+        <input type="datetime-local" name="localDataTime" id="">
         <div class="mb-5">
             @error('message')
                 <p class="text-red-400">{{ $message }}</p>
@@ -119,7 +120,7 @@
     <script>
         const options = {
             // debug: 'info',
-            placeholder: 'Compose an epic...',
+            placeholder: 'Compose an Your Topic...',
             theme: 'snow',
             modules: {
                 toolbar: {

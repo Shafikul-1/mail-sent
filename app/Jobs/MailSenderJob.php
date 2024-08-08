@@ -67,13 +67,15 @@ class MailSenderJob implements ShouldQueue
                     $service->users_messages->send('me', $message);
 
                     MailSender::where('id', $data->id)->delete();
-                    echo "success -- ";
+                    echo "Mail Sent & Database Id delete success -- ";
                 } catch (Google_Service_Exception $e) {
                     MailSender::where('id', $data->id)->update(['status' => 0]);
-                    Log::error('Error sending email: ' . $e->getMessage());
+                    Log::error('Error Mail Send MailSenderJob : ' . $e->getMessage());
+                    echo "error Check Log";
                 } catch (\Exception $s) {
                     MailSender::where('id', $data->id)->update(['status' => 0]);
-                    Log::error('Genaral Error:' . $s->getMessage());
+                    Log::error('Genaral Error MailSenderJob :' . $s->getMessage());
+                    echo "error Check Log";
                 }
             } else {
                 Log::warning('Access check failed for user ID: ' . $data->user_id);
@@ -104,22 +106,6 @@ class MailSenderJob implements ShouldQueue
 
         foreach ($attachmentPaths as $path) {
             $filePath = storage_path("app/public/{$path}");
-            // if (!file_exists($filePath)) {
-            //     continue; // Skip if the file doesn't exist
-            // }
-            // $fileName = basename($filePath);
-            // $fileData = file_get_contents($filePath);
-            // $base64File = base64_encode($fileData);
-            // $mimeType = mime_content_type($filePath);
-            // $rawMessage .= "--{$boundary}\r\n";
-
-            // Attachment
-            // $rawMessage .= "Content-Type: {$mimeType}; name=\"{$fileName}\"\r\n";
-            // $rawMessage .= "Content-Disposition: attachment; filename=\"{$fileName}\"\r\n";
-            // $rawMessage .= "Content-ID: <{$fileName}>\r\n";
-            // $rawMessage .= "Content-Transfer-Encoding: base64\r\n\r\n";
-            // $rawMessage .= chunk_split($base64File, 76, "\r\n");
-
 
             if (!$this->isFileFullyUploaded($filePath)) {
                 continue; // Skip if the file is not fully uploaded
