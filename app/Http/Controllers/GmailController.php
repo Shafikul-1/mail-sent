@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use DateTime;
+use Carbon\Carbon;
 use DOMXPath;
 use DOMDocument;
 use Google\Client;
 use App\Models\User;
+use App\Models\Mailfile;
 use Google\Service\Gmail;
 use App\Models\MailSender;
 use Google\Service\Oauth2;
@@ -20,7 +22,6 @@ use Google\Service\Gmail\MessagePart;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Storage;
 use Google\Service\Gmail\MessagePartBody;
-use App\Models\Mailfile;
 
 class GmailController extends Controller
 {
@@ -179,7 +180,7 @@ class GmailController extends Controller
     // Compose Email Sent
     public function composeSent(Request $request)
     {
-        return $request;
+        // return $request;
         ini_set('max_excution_time', 120);
 
         $user_id = Auth::user()->id;
@@ -189,6 +190,7 @@ class GmailController extends Controller
             'to' => 'required',
             'subject' => 'required',
             'sendingTime' => 'required|numeric',
+            'send_times' => 'required|date',
             'attachments.*' => 'file|mimes:jpg,jpeg,png,pdf,doc,docx,xls,xlsx,mp4,avi|max:20480' // Increased max size
         ]);
 
@@ -232,7 +234,8 @@ class GmailController extends Controller
         $intervalMinutes = $request->sendingTime;
 // return $attachmentPaths;
         foreach ($allMails as $client_mail) {
-            $currentTime = now();
+            // $currentTime = now();
+            $currentTime = Carbon::parse($request->send_times);
             // $email = $this->createEmailWithAttachments($client_mail, $request->input('subject'), $messageBody, $attachmentPaths);
 
             MailSender::create([
@@ -240,7 +243,7 @@ class GmailController extends Controller
                 'attachmentPaths' => $attachmentPaths,
                 'subject' => $request->subject,
                 'user_id' => $user_id,
-                'sendingTime' => $currentTime->addMinutes($intervalMinutes)->format('Y-m-d H:i:s'),
+                'sendingTime' => $currentTime->addMinutes($intervalMinutes),
                 'status' => false,
                 'email_content' => $messageBody,
             ]);

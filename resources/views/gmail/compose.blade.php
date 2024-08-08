@@ -83,7 +83,14 @@
                 <p class="text-red-400">{{ $message }}</p>
             @enderror
         </div>
-        <input type="datetime-local" name="localDataTime" id="">
+        <div class="mb-5">
+            <label for="send_times" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Select Sending Time</label>
+            <input value="{{ old('send_times') }}" type="datetime-local" name="send_times" id="send_times"
+                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"/>
+            @error('send_times')
+                <p class="text-red-800">{{ $message }}</p>
+            @enderror
+        </div>
         <div class="mb-5">
             @error('message')
                 <p class="text-red-400">{{ $message }}</p>

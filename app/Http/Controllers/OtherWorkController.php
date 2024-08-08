@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use DateTime;
+use Carbon\Carbon;
 use App\Models\User;
 use App\Models\OtherWork;
 use App\Models\MailSender;
@@ -21,7 +22,12 @@ class OtherWorkController extends Controller
      */
     public function index()
     {
-        $currentTime = now()->format('Y-m-d H:i:s');
+        $timezone = 'Asia/Dhaka'; // Set your desired timezone
+        $currentTime = Carbon::now($timezone);
+        $currentTime->format('Y-m-d H:i:s');
+
+
+        // $currentTime = now()->format('Y-m-d H:i:s');
         // $nextTime = $currentDate->addMinutes(10)->format('Y-m-d H:i:s');
         // $datas = OtherWork::where('sendingTime' , '<=', $nextTime)->get(['id','action', 'messageId', 'sendingTime', 'user_id', 'reply']);
 
@@ -46,15 +52,19 @@ class OtherWorkController extends Controller
     // Mail Sender
     public function mailSender()
     {
-        $currentTime = now()->format('Y-m-d H:i:s');
+        // $currentTime = now()->format('Y-m-d H:i:s');
+        $timezone = 'Asia/Dhaka'; // Set your desired timezone
+        $currentTime = Carbon::now($timezone);
+        $currentTime->format('Y-m-d H:i:s');
+
         $currentAllData = MailSender::whereRaw("status = ? AND sendingTime <= ?", [0, $currentTime])
-        ->join('users', 'users.id', '=', 'mail_senders.user_id')
-        ->get(['mail_senders.id','client_email', 'user_id', 'sendingTime', 'status', 'email_content', 'subject', 'attachmentPaths', 'name', 'email']);
+            ->join('users', 'users.id', '=', 'mail_senders.user_id')
+            ->get(['mail_senders.id', 'client_email', 'user_id', 'sendingTime', 'status', 'email_content', 'subject', 'attachmentPaths', 'name', 'email']);
 
         if ($currentAllData->isEmpty()) {
             echo "No Data Found Current Time Arr Is Empty";
         } else {
-        //    $userDetails =  User::find($currentAllData->user_id);
+            //    $userDetails =  User::find($currentAllData->user_id);
             // return $currentAllData;
             try {
                 MailSenderJob::dispatch($currentAllData);
@@ -96,8 +106,9 @@ class OtherWorkController extends Controller
 
         $intervalMinutes = $request->sendingTime;
         foreach ($request->messageId as $id) {
-            $currentTime = now(); // or use \Carbon\Carbon::now()
-            $scheduleTime = $currentTime->addMinutes($intervalMinutes)->format('Y-m-d H:i:s');
+            $currentTime = Carbon::parse($request->send_times);
+            // $currentTime = now(); // or use \Carbon\Carbon::now()
+            $scheduleTime = $currentTime->addMinutes($intervalMinutes);
             $workData = OtherWork::create([
                 'action' => $request->action,
                 'messageId' => $id,

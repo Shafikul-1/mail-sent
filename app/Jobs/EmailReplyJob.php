@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use Carbon\Carbon;
 use Google\Client;
 use App\Models\User;
 use App\Models\OtherWork;
@@ -55,7 +56,11 @@ class EmailReplyJob implements ShouldQueue
 
         foreach ($this->datas as $data) {
             if ($data->action === 'reply') {
-                $currentTime = now()->format('Y-m-d H:i:s');
+                // $currentTime = now()->format('Y-m-d H:i:s');
+                $timezone = 'Asia/Dhaka'; // Set your desired timezone
+                $currentTime = Carbon::now($timezone);
+                $currentTime->format('Y-m-d H:i:s');
+                
                 if ($data->sendingTime <= $currentTime) {
                     try {
                         $replysent = $this->messageSentSchedule($data->reply, $data->messageId, $data->user_id);

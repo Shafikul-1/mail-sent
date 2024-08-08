@@ -23,6 +23,15 @@
                                 <div id="replyContent" class=" min-h-[12rem] p-2" contenteditable="true"></div>
                                 <input type="hidden" name="reply" id="reply">
                             </div>
+                            {{-- Select Time When Work start --}}
+                            <div class="mb-5">
+                                <label for="send_times" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Select Sending Time</label>
+                                <input value="{{ old('send_times') }}" type="datetime-local" name="send_times" id="send_times"
+                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"/>
+                                @error('send_times')
+                                    <p class="text-red-800">{{ $message }}</p>
+                                @enderror
+                            </div>
                             {{-- set schedule time --}}
                             <div class="flex flex-col">
                                 <label for="sendingTime" class="font-bold dark:text-white my-2">Insert Sending time Min only
@@ -154,6 +163,36 @@
         </div>
     </form>
 
+@error('messageId')
+<div class="bg-red-50 border-s-4 border-red-500 p-4 fixed bottom-0 right-0 z-50" role="alert">
+    <div class="flex">
+        <div class="flex-shrink-0">
+            <!-- Icon -->
+            <span
+                class="inline-flex justify-center items-center size-8 rounded-full border-4 border-red-100 bg-red-200 text-red-800">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-[18px] shrink-0 fill-green-500 inline mr-3"
+                    viewBox="0 0 512 512">
+                    <ellipse cx="246" cy="246" data-original="#000" rx="246"
+                        ry="246" />
+                    <path class="fill-white"
+                        d="m235.472 392.08-121.04-94.296 34.416-44.168 74.328 57.904 122.672-177.016 46.032 31.888z"
+                        data-original="#000" />
+                </svg>
+            </span>
+            <!-- End Icon -->
+        </div>
+        <div class="ms-3">
+            <h3 class="text-gray-800 font-semibold">
+                __!__ Error __!__ 
+            </h3>
+            <p class="text-sm text-gray-700">
+                {{ $message }}
+            </p>
+        </div>
+    </div>
+</div>
+</div>
+@enderror
 
     @if (session('msg'))
         <div class="bg-red-50 border-s-4 border-red-500 p-4 fixed bottom-0 right-0 z-50" role="alert">
