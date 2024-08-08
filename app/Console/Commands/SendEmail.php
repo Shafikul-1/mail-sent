@@ -34,7 +34,7 @@ class SendEmail extends Command
         $mailReply = new OtherWorkController();
         $work = $mailReply->index();
         $schedulCompose = $mailReply->mailSender();
-        $this->info($schedulCompose);
+        $this->info($mailReply);
         return 0;
     }
 }
