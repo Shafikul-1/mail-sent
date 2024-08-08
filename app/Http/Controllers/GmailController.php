@@ -533,7 +533,7 @@ class GmailController extends Controller
 
             $page = [];
             // Paginate the thread IDs
-            $threadIdPages = array_chunk(array_keys($allMessageId), 50);
+            $threadIdPages = array_chunk(array_keys($allMessageId), 49);
             $paginatedResults = [];
 
             foreach ($threadIdPages as $index => $threadIds) {
