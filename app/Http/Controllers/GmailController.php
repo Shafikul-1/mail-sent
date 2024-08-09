@@ -180,7 +180,7 @@ class GmailController extends Controller
     // Compose Email Sent
     public function composeSent(Request $request)
     {
-        // return $request;
+
         ini_set('max_excution_time', 120);
 
         $user_id = Auth::user()->id;
@@ -189,10 +189,11 @@ class GmailController extends Controller
         $validatedData = $request->validate([
             'to' => 'required',
             'subject' => 'required',
-            'sendingTime' => 'required|numeric',
             'send_times' => 'required|date',
-            'attachments.*' => 'file|mimes:jpg,jpeg,png,pdf,doc,docx,xls,xlsx,mp4,avi|max:20480' // Increased max size
+            'sendingTime' => 'required|numeric',
+            'attachments.*' => 'file|mimes:jpg,jpeg,png,pdf,doc,docx,xls,xlsx,mp4,avi,webp,gif|max:20480' // Increased max size
         ]);
+        // return $request;
 
         $Gtoken = Session::get('Gtoken');
         $this->client->setAccessToken($Gtoken);
@@ -228,11 +229,11 @@ class GmailController extends Controller
         $messageBody = $request->input('message');
         $messageBody = $this->handleEmbeddedFiles($messageBody, $user_id, $attachmentPaths);
 
-        $allMails = array_filter(explode(' ', $request->to), function($value){
+        $allMails = array_filter(explode(' ', $request->to), function ($value) {
             return !empty(trim($value));
         });
         $intervalMinutes = $request->sendingTime;
-// return $attachmentPaths;
+        // return $attachmentPaths;
         foreach ($allMails as $client_mail) {
             // $currentTime = now();
             $currentTime = Carbon::parse($request->send_times);
@@ -259,7 +260,22 @@ class GmailController extends Controller
             // }
         }
 
-        return redirect()->route('home')->with('msg', "Mail sending pending, saved to database");
+        return redirect()->route('compoaseStatus')->with('msg', "Mail sending pending, saved to database");
+    }
+
+    // Compose Email Status & db data show
+    public function compoaseStatus()
+    {
+        $userId = Auth::user()->id;
+        $composeStatusData = MailSender::where('user_id', $userId)->paginate(10);
+        // return $composeStatusData;
+        return view('gmail.composeStatus', compact('composeStatusData'));
+    }
+
+    // Delete Data Compose Status
+    public function deleteComposeData($id) {
+        MailSender::where( 'id' , $id)->delete();
+        return redirect()->back()->with('msg', 'Compose Data Delete Successful');
     }
 
     // Handle embedded files in the email body

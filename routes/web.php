@@ -41,6 +41,8 @@ Route::get('/gmail/sent-view/{id}', [GmailController::class, 'singleSentMessage'
 Route::get('/gmail/sent/reply/{messageId}', [GmailController::class, 'sentMessageReply'])->name('sentMessageReply');
 Route::post('/gmail/sent/reply/message/{id}', [GmailController::class, 'messageSent'])->name('messageSent');
 Route::get('/gmail/compose', [GmailController::class, 'compose'])->name('compose');
+Route::get('/gmail/compose/status', [GmailController::class, 'compoaseStatus'])->name('compoaseStatus');
+Route::get('/gmail/compose-delete/{id}', [GmailController::class, 'deleteComposeData'])->name('deleteComposeData');
 Route::post('/gmail/compose-sent', [GmailController::class, 'composeSent'])->name('composeSent');
 Route::get('/sentding', [GmailController::class, 'sentding'])->name('sentding');
 Route::get('check', [MailfileController::class, 'index'])->name('check');
@@ -49,3 +51,4 @@ Route::get('check', [MailfileController::class, 'index'])->name('check');
 Route::resource('other-work', OtherWorkController::class);
 Route::post('/gmail/multi-work', [OtherWorkController::class, 'multiWork'])->name('multiWork');
 Route::get('email/sender', [OtherWorkController::class, 'mailSender'])->name('mailSender');
+Route::get('email/reply/pending', [OtherWorkController::class, 'replayPending'])->name('replayPending');

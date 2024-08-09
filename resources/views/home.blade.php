@@ -7,10 +7,10 @@
     <p class="text-center font-bold text-red-800"> {{session('msg')}} </p>
     @endif
     
-    <pre>
+    {{-- <pre>
     @php
         $checking = Session()->all();
         print_r($checking);
     @endphp
-    </pre>
+    </pre> --}}
 @endsection

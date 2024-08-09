@@ -124,6 +124,13 @@ class OtherWorkController extends Controller
         return redirect()->back()->with('msg', "Success Other Worked");
     }
 
+    public function replayPending() {
+        $userId = Auth::user()->id;
+        $replayPendingData = OtherWork::where('user_id', $userId)->paginate(10);
+         
+        // return $replayPendingData;
+        return view('gmail.sent.replayPending', compact('replayPendingData'));
+    }
     /**
      * Store a newly created resource in storage.
      *
