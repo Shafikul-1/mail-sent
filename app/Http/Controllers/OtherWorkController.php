@@ -101,6 +101,7 @@ class OtherWorkController extends Controller
         if (!is_null($request->sendingTime)) {
             $request->validate([
                 'sendingTime' => 'numeric',
+                'send_times' => 'required|date',
             ]);
         }
 
