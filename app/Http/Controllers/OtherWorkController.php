@@ -92,6 +92,7 @@ class OtherWorkController extends Controller
     // sent all mail thake all data asche
     public function multiWork(Request $request)
     {
+        // return $request;
         $userId = Auth::user()->id;
         $request->validate([
             'messageId' => 'required|array',

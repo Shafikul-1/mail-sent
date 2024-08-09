@@ -4,7 +4,7 @@
     <h2 class="text-3xl text-center font-bold py-3">My Sent Message</h2>
     <form action="{{ route('multiWork') }}" id="replyForm" method="post">
         @csrf
-        {{-- Dail log box work --}}
+        {{-- Daillog box work --}}
 
         <div class="flex gap-5 my-6">
             {{-- Dailog Box reply --}}
@@ -87,7 +87,7 @@
                     <tr>
                         <th scope="col" class="p-4">
                             <div class="flex items-center">
-                                <input id="allSelected" type="checkbox"
+                                <input onclick="allChecked()" id="allSelected" type="checkbox"
                                     class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:focus:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
                                 <label for="allSelected" class="sr-only">checkbox</label>
                             </div>
@@ -246,5 +246,17 @@
           }
       }
 
+      function allChecked() {
+        // Get the state of the "allSelected" checkbox
+        const isChecked = document.getElementById('allSelected').checked;
+        
+        // Get all checkboxes with the name "messageId[]"
+        const checkboxes = document.querySelectorAll('input[name="messageId[]"]');
+        
+        // Loop through each checkbox and set its checked property to the state of the "allSelected" checkbox
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = isChecked;
+    });
+}
     </script>
 @endsection
